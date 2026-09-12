@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Presupuestos</title>
+<meta name="theme-color" content="#15304a">
+<meta name="description" content="Generador de presupuestos de albañilería y construcción">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Presupuestos">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ===================== TOP BAR (marca de la empresa) ===================== -->
+<header class="topbar" id="topbar">
+  <div class="topbar-brand">
+    <img id="brandLogo" class="brand-logo" alt="" hidden>
+    <div class="brand-text">
+      <strong id="brandName">Mi empresa</strong>
+      <span id="brandSub"></span>
+    </div>
+  </div>
+</header>
+
+<!-- ===================== NAV (sidebar en PC / bottom nav en móvil) ===================== -->
+<nav class="mainnav" id="mainnav" aria-label="Navegación principal">
+  <button class="navbtn" data-view="home" aria-current="page">
+    <svg viewBox="0 0 24 24" class="navicon"><path d="M4 11.5 12 4l8 7.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z"/></svg>
+    <span>Inicio</span>
+  </button>
+  <button class="navbtn" data-view="budgets">
+    <svg viewBox="0 0 24 24" class="navicon"><path d="M6 2h9l5 5v15H6zM14 2v6h5"/><path d="M9 13h6M9 17h6" stroke-linecap="round"/></svg>
+    <span>Presupuestos</span>
+  </button>
+  <button class="navbtn" data-view="prices">
+    <svg viewBox="0 0 24 24" class="navicon"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+    <span>Precios</span>
+  </button>
+  <button class="navbtn" data-view="settings">
+    <svg viewBox="0 0 24 24" class="navicon"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 0 1-4 0v-.09A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 0 1 0-4h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.55V3a2 2 0 0 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.1.36.28.68.55 1H21a2 2 0 0 1 0 4h-.09c-.32.1-.63.28-.85.55z"/></svg>
+    <span>Configuración</span>
+  </button>
+</nav>
+
+<!-- ===================== MAIN CONTENT ===================== -->
+<main id="app">
+
+  <!-- ---------- INICIO ---------- -->
+  <section class="view" id="view-home" data-view="home">
+    <div class="view-header">
+      <h1>Presupuestos</h1>
+    </div>
+    <button class="btn btn-hero" id="btnNewBudgetHome">
+      <svg viewBox="0 0 24 24" class="icon"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
+      Nuevo presupuesto
+    </button>
+
+    <div id="draftBanner" class="draft-banner" hidden>
+      <div>
+        <strong>Tenés un presupuesto sin terminar</strong>
+        <span id="draftInfo"></span>
+      </div>
+      <div class="draft-banner-actions">
+        <button class="btn btn-ghost btn-small" id="btnDiscardDraft">Descartar</button>
+        <button class="btn btn-primary btn-small" id="btnResumeDraft">Continuar</button>
+      </div>
+    </div>
+
+    <h2 class="section-title">Últimos presupuestos</h2>
+    <div id="homeRecentList" class="budget-list"></div>
+    <p class="empty-hint" id="homeEmptyHint" hidden>Todavía no creaste ningún presupuesto. Tocá "Nuevo presupuesto" para empezar.</p>
+  </section>
+
+  <!-- ---------- PRESUPUESTOS (listado completo) ---------- -->
+  <section class="view" id="view-budgets" data-view="budgets">
+    <div class="view-header">
+      <h1>Presupuestos</h1>
+      <button class="btn btn-primary btn-small" id="btnNewBudgetList">+ Nuevo</button>
+    </div>
+    <input type="search" id="budgetSearch" class="input" placeholder="Buscar por cliente...">
+    <div id="allBudgetsList" class="budget-list"></div>
+    <p class="empty-hint" id="allBudgetsEmptyHint" hidden>No hay presupuestos guardados todavía.</p>
+  </section>
+
+  <!-- ---------- EDITOR DE PRESUPUESTO (wizard) ---------- -->
+  <section class="view" id="view-editor" data-view="editor">
+    <div class="editor-topbar">
+      <button class="btn btn-icon" id="btnEditorClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" class="icon"><path d="M18 6 6 18M6 6l12 12" stroke-linecap="round"/></svg>
+      </button>
+      <div class="stepper" id="stepper">
+        <button class="step" data-step="1"><span class="step-num">1</span><span class="step-label">Cliente</span></button>
+        <button class="step" data-step="2"><span class="step-num">2</span><span class="step-label">Trabajos</span></button>
+        <button class="step" data-step="3"><span class="step-num">3</span><span class="step-label">Resumen</span></button>
+      </div>
+    </div>
+
+    <!-- PASO 1: CLIENTE -->
+    <div class="step-panel" id="panel-1">
+      <h2 class="section-title">Datos del cliente</h2>
+      <div class="field">
+        <label for="clientName">Nombre y apellido / Empresa</label>
+        <input type="text" id="clientName" class="input" placeholder="Ej: Victoria y Emiliano">
+      </div>
+      <div class="field">
+        <label for="clientPhone">Teléfono</label>
+        <input type="tel" id="clientPhone" class="input" placeholder="Ej: 343 415-1234">
+      </div>
+      <div class="field">
+        <label for="clientAddress">Dirección de la obra</label>
+        <input type="text" id="clientAddress" class="input" placeholder="Ej: San Martín 1234">
+      </div>
+      <div class="field">
+        <label for="budgetDate">Fecha del presupuesto</label>
+        <input type="date" id="budgetDate" class="input">
+      </div>
+
+      <div class="field field-toggle">
+        <label class="switch-row">
+          <span>Organizar por ambientes</span>
+          <span class="switch"><input type="checkbox" id="useAmbientes"><span class="slider"></span></span>
+        </label>
+        <p class="field-hint">Activalo si querés agrupar los trabajos por baño, cocina, etc. Si no, todos los trabajos van juntos.</p>
+      </div>
+
+      <button class="btn btn-primary btn-block" id="btnStep1Next">Siguiente: Trabajos</button>
+    </div>
+
+    <!-- PASO 2: TRABAJOS -->
+    <div class="step-panel" id="panel-2" hidden>
+      <div id="ambientesWrap" hidden>
+        <div class="ambientes-tabs" id="ambientesTabs"></div>
+        <button class="btn btn-ghost btn-small" id="btnAddAmbiente">+ Agregar ambiente</button>
+      </div>
+
+      <h2 class="section-title" id="jobsSectionTitle">Trabajos</h2>
+      <div id="jobsList" class="jobs-list"></div>
+      <p class="empty-hint" id="jobsEmptyHint">Todavía no agregaste trabajos.</p>
+
+      <button class="btn btn-hero" id="btnAddJob">
+        <svg viewBox="0 0 24 24" class="icon"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
+        Agregar trabajo
+      </button>
+
+      <div class="sticky-total">
+        <span>Total</span>
+        <strong id="stickyTotal">$ 0,00</strong>
+      </div>
+
+      <div class="editor-actions">
+        <button class="btn btn-ghost" id="btnStep2Back">Atrás</button>
+        <button class="btn btn-primary" id="btnStep2Next">Siguiente: Resumen</button>
+      </div>
+    </div>
+
+    <!-- PASO 3: RESUMEN -->
+    <div class="step-panel" id="panel-3" hidden>
+      <h2 class="section-title">Materiales</h2>
+      <div class="field">
+        <div class="segmented" id="materialsMode">
+          <button class="seg-btn" data-value="incluidos">Incluidos</button>
+          <button class="seg-btn" data-value="no_incluidos">No incluidos</button>
+          <button class="seg-btn" data-value="a_cargo_cliente">A cargo del cliente</button>
+        </div>
+      </div>
+
+      <div class="field field-toggle">
+        <label class="switch-row">
+          <span>Separar mano de obra y materiales</span>
+          <span class="switch"><input type="checkbox" id="useSplit"><span class="slider"></span></span>
+        </label>
+      </div>
+      <div id="splitFields" class="split-fields" hidden>
+        <div class="field">
+          <label for="laborTotal">Mano de obra ($)</label>
+          <input type="text" inputmode="decimal" id="laborTotal" class="input money-input" placeholder="0,00">
+        </div>
+        <div class="field">
+          <label for="materialsTotal">Materiales ($)</label>
+          <input type="text" inputmode="decimal" id="materialsTotal" class="input money-input" placeholder="0,00">
+        </div>
+      </div>
+
+      <h2 class="section-title">Recargos y descuentos</h2>
+      <div class="field field-toggle">
+        <label class="switch-row">
+          <span>Aplicar recargo</span>
+          <span class="switch"><input type="checkbox" id="useRecargo"><span class="slider"></span></span>
+        </label>
+      </div>
+      <div id="recargoFields" class="recargo-fields" hidden>
+        <div class="field-row">
+          <div class="field">
+            <label for="recargoPercent">Recargo %</label>
+            <input type="text" inputmode="decimal" id="recargoPercent" class="input" placeholder="0">
+          </div>
+          <div class="field">
+            <label for="recargoFixed">Recargo fijo ($)</label>
+            <input type="text" inputmode="decimal" id="recargoFixed" class="input money-input" placeholder="0,00">
+          </div>
+        </div>
+      </div>
+
+      <div class="field field-toggle">
+        <label class="switch-row">
+          <span>Aplicar descuento</span>
+          <span class="switch"><input type="checkbox" id="useDescuento"><span class="slider"></span></span>
+        </label>
+      </div>
+      <div id="descuentoFields" class="recargo-fields" hidden>
+        <div class="field-row">
+          <div class="field">
+            <label for="descuentoPercent">Descuento %</label>
+            <input type="text" inputmode="decimal" id="descuentoPercent" class="input" placeholder="0">
+          </div>
+          <div class="field">
+            <label for="descuentoFixed">Descuento fijo ($)</label>
+            <input type="text" inputmode="decimal" id="descuentoFixed" class="input money-input" placeholder="0,00">
+          </div>
+        </div>
+      </div>
+
+      <h2 class="section-title">Condiciones <span class="optional-tag">opcional</span></h2>
+      <div class="field field-toggle">
+        <label class="switch-row">
+          <span>Incluir condiciones</span>
+          <span class="switch"><input type="checkbox" id="useConditions"><span class="slider"></span></span>
+        </label>
+      </div>
+      <div id="conditionsField" class="field" hidden>
+        <textarea id="conditionsText" class="input textarea" rows="4"></textarea>
+      </div>
+
+      <div class="totals-card" id="totalsCard">
+        <div class="totals-row"><span>Subtotal</span><strong id="totSubtotal">$ 0,00</strong></div>
+        <div class="totals-row" id="totRecargoRow" hidden><span>Recargo</span><strong id="totRecargo">$ 0,00</strong></div>
+        <div class="totals-row" id="totDescuentoRow" hidden><span>Descuento</span><strong id="totDescuento">$ 0,00</strong></div>
+        <div class="totals-row totals-final"><span>TOTAL</span><strong id="totFinal">$ 0,00</strong></div>
+      </div>
+
+      <div class="editor-actions">
+        <button class="btn btn-ghost" id="btnStep3Back">Atrás</button>
+      </div>
+      <div class="editor-actions editor-actions-final">
+        <button class="btn btn-secondary btn-block" id="btnSaveBudget">Guardar</button>
+        <button class="btn btn-primary btn-block" id="btnSavePdf">Guardar como PDF</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------- FICHA DE PRESUPUESTO GUARDADO ---------- -->
+  <section class="view" id="view-detail" data-view="detail">
+    <div class="editor-topbar">
+      <button class="btn btn-icon" id="btnDetailClose" aria-label="Volver">
+        <svg viewBox="0 0 24 24" class="icon"><path d="m15 18-6-6 6-6" stroke-linecap="round"/></svg>
+      </button>
+      <h2 id="detailTitle">Presupuesto</h2>
+    </div>
+    <div id="detailContent"></div>
+    <div class="detail-actions">
+      <button class="btn btn-ghost" id="btnDetailEdit">Editar</button>
+      <button class="btn btn-ghost" id="btnDetailDuplicate">Duplicar</button>
+      <button class="btn btn-primary" id="btnDetailPdf">Exportar PDF</button>
+      <button class="btn btn-danger" id="btnDetailDelete">Eliminar</button>
+    </div>
+  </section>
+
+  <!-- ---------- PRECIOS ---------- -->
+  <section class="view" id="view-prices" data-view="prices">
+    <div class="view-header">
+      <h1>Precios</h1>
+      <button class="btn btn-primary btn-small" id="btnUpdatePrices">Actualizar precios</button>
+    </div>
+    <button class="btn btn-hero" id="btnAddCatalogItem">
+      <svg viewBox="0 0 24 24" class="icon"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
+      Agregar trabajo al catálogo
+    </button>
+    <div id="catalogList" class="catalog-list"></div>
+    <p class="empty-hint" id="catalogEmptyHint" hidden>No hay trabajos cargados en el catálogo.</p>
+  </section>
+
+  <!-- ---------- CONFIGURACIÓN ---------- -->
+  <section class="view" id="view-settings" data-view="settings">
+    <div class="view-header"><h1>Configuración</h1></div>
+
+    <h2 class="section-title">Datos de la empresa</h2>
+    <div class="field">
+      <label for="cfgCompanyName">Nombre de la empresa / albañil</label>
+      <input type="text" id="cfgCompanyName" class="input" placeholder="Ej: Juan Pérez - Construcciones">
+    </div>
+    <div class="field">
+      <label for="cfgPhone">Teléfono</label>
+      <input type="tel" id="cfgPhone" class="input" placeholder="Ej: 343 415-1234">
+    </div>
+    <div class="field">
+      <label for="cfgLocality">Localidad</label>
+      <input type="text" id="cfgLocality" class="input" placeholder="Ej: Paraná, Entre Ríos">
+    </div>
+    <div class="field">
+      <label>Logo</label>
+      <div class="logo-picker">
+        <img id="cfgLogoPreview" class="logo-preview" alt="" hidden>
+        <div class="logo-picker-actions">
+          <label class="btn btn-ghost btn-small" for="cfgLogoInput">Elegir imagen</label>
+          <input type="file" id="cfgLogoInput" accept="image/*" hidden>
+          <button class="btn btn-ghost btn-small" id="btnRemoveLogo">Quitar logo</button>
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-primary" id="btnSaveCompany">Guardar datos de la empresa</button>
+
+    <h2 class="section-title">Plantilla de condiciones</h2>
+    <p class="field-hint">Este texto aparece por defecto al activar "Condiciones" en un presupuesto nuevo.</p>
+    <div class="field">
+      <textarea id="cfgConditionsTemplate" class="input textarea" rows="5"></textarea>
+    </div>
+    <button class="btn btn-primary" id="btnSaveConditions">Guardar plantilla</button>
+
+    <h2 class="section-title">Categorías de trabajo</h2>
+    <p class="field-hint">Son las opciones que aparecen al elegir el tipo de trabajo.</p>
+    <div id="categoriesList" class="chip-list"></div>
+    <div class="field-row">
+      <input type="text" id="newCategoryInput" class="input" placeholder="Nueva categoría">
+      <button class="btn btn-secondary" id="btnAddCategory">Agregar</button>
+    </div>
+
+    <h2 class="section-title">Copia de seguridad</h2>
+    <p class="field-hint">Guardá una copia de todos tus datos (empresa, precios y presupuestos) para no perderlos si cambiás de celular.</p>
+    <button class="btn btn-primary btn-block" id="btnExportBackup">Exportar copia de seguridad</button>
+    <label class="btn btn-secondary btn-block" for="importBackupInput" style="margin-top:10px;">Importar copia de seguridad</label>
+    <input type="file" id="importBackupInput" accept="application/json" hidden>
+
+    <p class="app-version">Presupuestos · funciona sin conexión a Internet</p>
+  </section>
+
+</main>
+
+<!-- ===================== MODAL: AGREGAR / EDITAR TRABAJO EN PRESUPUESTO ===================== -->
+<div class="modal-overlay" id="jobModalOverlay" hidden>
+  <div class="modal" id="jobModal">
+    <div class="modal-header">
+      <h3 id="jobModalTitle">Agregar trabajo</h3>
+      <button class="btn btn-icon" id="jobModalClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" class="icon"><path d="M18 6 6 18M6 6l12 12" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label for="jobFromCatalog">Elegir del catálogo</label>
+        <select id="jobFromCatalog" class="input">
+          <option value="">— Trabajo nuevo / manual —</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="jobCategory">Tipo de trabajo</label>
+        <select id="jobCategory" class="input"></select>
+      </div>
+      <div class="field">
+        <label for="jobDescription">Descripción</label>
+        <input type="text" id="jobDescription" class="input" placeholder="Ej: Revoque exterior impermeabilizado">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="jobUnit">Unidad</label>
+          <select id="jobUnit" class="input">
+            <option value="m²">m²</option>
+            <option value="m">m</option>
+            <option value="unidad">unidad</option>
+            <option value="hora">hora</option>
+            <option value="día">día</option>
+            <option value="trabajo">trabajo</option>
+            <option value="otro">otro</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="jobQuantity">Cantidad</label>
+          <input type="text" inputmode="decimal" id="jobQuantity" class="input" placeholder="0">
+        </div>
+      </div>
+      <div class="field">
+        <label for="jobPrice">Precio unitario ($)</label>
+        <input type="text" inputmode="decimal" id="jobPrice" class="input money-input" placeholder="0,00">
+      </div>
+      <div class="job-subtotal-preview">
+        <span>Subtotal</span>
+        <strong id="jobSubtotalPreview">$ 0,00</strong>
+      </div>
+      <p class="field-error" id="jobModalError" hidden></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="jobModalCancel">Cancelar</button>
+      <button class="btn btn-primary" id="jobModalSave">Guardar trabajo</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: TRABAJO DE CATÁLOGO ===================== -->
+<div class="modal-overlay" id="catalogModalOverlay" hidden>
+  <div class="modal" id="catalogModal">
+    <div class="modal-header">
+      <h3 id="catalogModalTitle">Agregar trabajo</h3>
+      <button class="btn btn-icon" id="catalogModalClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" class="icon"><path d="M18 6 6 18M6 6l12 12" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label for="catCategory">Tipo / categoría</label>
+        <select id="catCategory" class="input"></select>
+      </div>
+      <div class="field">
+        <label for="catName">Nombre del trabajo</label>
+        <input type="text" id="catName" class="input" placeholder="Ej: Revoque grueso">
+      </div>
+      <div class="field">
+        <label for="catDescription">Descripción predeterminada</label>
+        <input type="text" id="catDescription" class="input" placeholder="Ej: Revoque grueso a la cal en muros exteriores">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="catUnit">Unidad</label>
+          <select id="catUnit" class="input">
+            <option value="m²">m²</option>
+            <option value="m">m</option>
+            <option value="unidad">unidad</option>
+            <option value="hora">hora</option>
+            <option value="día">día</option>
+            <option value="trabajo">trabajo</option>
+            <option value="otro">otro</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="catPrice">Precio ($)</label>
+          <input type="text" inputmode="decimal" id="catPrice" class="input money-input" placeholder="0,00">
+        </div>
+      </div>
+      <p class="field-error" id="catalogModalError" hidden></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="catalogModalCancel">Cancelar</button>
+      <button class="btn btn-danger btn-hide-new" id="catalogModalDelete">Eliminar</button>
+      <button class="btn btn-primary" id="catalogModalSave">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: ACTUALIZAR PRECIOS EN LOTE ===================== -->
+<div class="modal-overlay" id="bulkPricesOverlay" hidden>
+  <div class="modal modal-large" id="bulkPricesModal">
+    <div class="modal-header">
+      <h3>Actualizar precios</h3>
+      <button class="btn btn-icon" id="bulkPricesClose" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" class="icon"><path d="M18 6 6 18M6 6l12 12" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p class="field-hint">Modificá los precios que necesites y tocá "Guardar cambios" al terminar.</p>
+      <div id="bulkPricesList" class="bulk-prices-list"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="bulkPricesCancel">Cancelar</button>
+      <button class="btn btn-primary" id="bulkPricesSave">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: CONFIRMACIÓN GENÉRICA ===================== -->
+<div class="modal-overlay" id="confirmOverlay" hidden>
+  <div class="modal modal-small" id="confirmModal">
+    <div class="modal-body">
+      <p id="confirmMessage"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="confirmCancel">Cancelar</button>
+      <button class="btn btn-danger" id="confirmOk">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== TOAST ===================== -->
+<div class="toast" id="toast" hidden></div>
+
+<!-- ===================== ÁREA DE IMPRESIÓN (solo visible al imprimir) ===================== -->
+<div id="printArea"></div>
+
+<script src="storage.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
