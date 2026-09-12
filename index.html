@@ -1,494 +1,1557 @@
 <!DOCTYPE html>
-<html lang="es-AR">
+<html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Presupuestos</title>
-<meta name="theme-color" content="#15304a">
-<meta name="description" content="Generador de presupuestos de albañilería y construcción">
-<link rel="manifest" href="manifest.json">
-<link rel="icon" href="icons/icon-192.png">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Presupuestos">
-<link rel="stylesheet" href="style.css">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Presupuestos de Obra</title>
+<style>
+/* =====================================================================
+   1. VARIABLES DE PERSONALIZACIÓN VISUAL
+   Para cambiar los colores de la aplicación, modificá los valores acá.
+   ===================================================================== */
+:root{
+  --bg:#EEEBE4;            /* fondo general (color plaster/revoque) */
+  --surface:#FFFFFF;        /* fondo de tarjetas y paneles */
+  --surface-2:#F6F3EE;      /* fondo levemente distinto (filas alternadas) */
+  --ink:#2A2724;            /* texto principal */
+  --ink-soft:#6B655D;       /* texto secundario */
+  --line:#DCD5C9;           /* líneas y bordes finos */
+  --brick:#A8432E;          /* color principal (ladrillo) */
+  --brick-dark:#7C3020;     /* color principal, variante oscura (hover) */
+  --brick-tint:#F3E1DA;     /* fondo suave con el color principal */
+  --success:#3F7A4E;
+  --success-tint:#E3EFE4;
+  --danger:#B23A2A;
+  --danger-tint:#F5E2DE;
+  --radius:12px;
+  --radius-sm:8px;
+  --shadow-modal:0 12px 32px rgba(30,25,20,0.28);
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+*{ box-sizing:border-box; }
+html,body{ margin:0; padding:0; }
+body{
+  font-family:var(--font);
+  background:var(--bg);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+  font-size:16px;
+  line-height:1.45;
+}
+button, input, select, textarea{ font-family:inherit; font-size:16px; color:inherit; }
+h1,h2,h3,h4{ margin:0; font-weight:700; }
+p{ margin:0; }
+button{ cursor:pointer; }
+::selection{ background:var(--brick-tint); }
+
+/* Foco visible para accesibilidad / teclado */
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible{
+  outline:3px solid var(--brick);
+  outline-offset:2px;
+}
+
+.oculto{ display:none !important; }
+
+/* =====================================================================
+   2. ESTRUCTURA GENERAL
+   ===================================================================== */
+#app{
+  min-height:100vh;
+  min-height:100dvh;
+  display:flex;
+  flex-direction:column;
+}
+
+.topbar{
+  position:sticky;
+  top:0;
+  z-index:20;
+  background:var(--surface);
+  border-bottom:1px solid var(--line);
+  padding:14px 16px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-height:60px;
+}
+.topbar .marca{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex:1;
+}
+.topbar .marca-logo{
+  width:34px; height:34px; border-radius:8px; object-fit:cover; flex-shrink:0;
+  background:var(--brick-tint);
+}
+.topbar h1{ font-size:19px; }
+.topbar .subt{ font-size:12.5px; color:var(--ink-soft); margin-top:1px; }
+.btn-volver{
+  width:40px; height:40px; border-radius:50%;
+  border:none; background:transparent; display:flex; align-items:center; justify-content:center;
+  color:var(--ink); flex-shrink:0;
+}
+.btn-volver:active{ background:var(--surface-2); }
+
+.main-content{
+  flex:1;
+  width:100%;
+  max-width:760px;
+  margin:0 auto;
+  padding:16px 16px 96px 16px;
+}
+
+/* Barra de navegación inferior (celular) */
+.bottom-nav{
+  position:fixed; bottom:0; left:0; right:0; z-index:30;
+  background:var(--surface);
+  border-top:1px solid var(--line);
+  display:flex;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.bottom-nav button{
+  flex:1; border:none; background:none; padding:9px 4px 8px;
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+  color:var(--ink-soft); font-size:12.5px; font-weight:600;
+}
+.bottom-nav button.activo{ color:var(--brick); }
+.bottom-nav svg{ width:23px; height:23px; }
+
+@media (min-width:780px){
+  #app{ flex-direction:row; }
+  .topbar{ display:none; }
+  .bottom-nav{
+    position:sticky; top:0; height:100vh;
+    flex-direction:column; width:230px; flex-shrink:0;
+    border-top:none; border-right:1px solid var(--line);
+    padding:22px 12px;
+    justify-content:flex-start; gap:6px;
+  }
+  .bottom-nav .marca-desktop{
+    display:flex; align-items:center; gap:10px; padding:0 10px 20px;
+  }
+  .bottom-nav .marca-desktop img{ width:36px;height:36px;border-radius:9px;object-fit:cover; }
+  .bottom-nav .marca-desktop b{ font-size:16px; }
+  .bottom-nav button{
+    flex-direction:row; justify-content:flex-start; gap:12px;
+    padding:12px 14px; border-radius:var(--radius-sm); font-size:15px;
+  }
+  .bottom-nav button.activo{ background:var(--brick-tint); }
+  .main-content{ max-width:880px; padding:32px 40px 60px; }
+}
+
+/* =====================================================================
+   3. BOTONES
+   ===================================================================== */
+.btn{
+  min-height:50px;
+  padding:12px 20px;
+  border-radius:var(--radius-sm);
+  border:1px solid transparent;
+  font-weight:700;
+  font-size:16px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  transition:background .12s ease;
+}
+.btn-bloque{ width:100%; }
+.btn svg{ width:20px; height:20px; flex-shrink:0; }
+.btn-primario{ background:var(--brick); color:#fff; }
+.btn-primario:active, .btn-primario:hover{ background:var(--brick-dark); }
+.btn-secundario{ background:var(--surface); color:var(--ink); border-color:var(--line); }
+.btn-secundario:hover{ background:var(--surface-2); }
+.btn-fantasma{ background:transparent; color:var(--brick); border-color:transparent; padding:10px 12px; min-height:auto; }
+.btn-peligro{ background:var(--danger-tint); color:var(--danger); }
+.btn-peligro-lleno{ background:var(--danger); color:#fff; }
+.btn-chico{ min-height:40px; padding:8px 14px; font-size:14.5px; }
+.btn-icono{
+  width:44px; height:44px; padding:0; border-radius:50%;
+  background:var(--surface-2); color:var(--ink); border:none;
+}
+.btn-icono:hover{ background:var(--line); }
+.btn:disabled{ opacity:.5; cursor:not-allowed; }
+
+.fab{
+  position:fixed; right:18px; bottom:86px; z-index:15;
+  width:60px; height:60px; border-radius:50%;
+  background:var(--brick); color:#fff; border:none;
+  box-shadow:0 6px 18px rgba(124,48,32,.4);
+  display:flex; align-items:center; justify-content:center;
+}
+.fab svg{ width:28px; height:28px; }
+@media (min-width:780px){ .fab{ display:none; } }
+
+/* =====================================================================
+   4. TARJETAS Y LISTAS
+   ===================================================================== */
+.tarjeta{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:16px;
+}
+.tarjeta + .tarjeta{ margin-top:10px; }
+
+.tarjeta-presupuesto{
+  display:flex; align-items:center; gap:12px; width:100%;
+  text-align:left; border:1px solid var(--line); background:var(--surface);
+  border-radius:var(--radius); padding:14px 16px; margin-bottom:10px;
+}
+.tarjeta-presupuesto .datos{ flex:1; min-width:0; }
+.tarjeta-presupuesto .cliente{ font-size:16.5px; font-weight:700; }
+.tarjeta-presupuesto .fecha{ font-size:13.5px; color:var(--ink-soft); margin-top:2px; }
+.tarjeta-presupuesto .total{ font-size:17px; font-weight:700; color:var(--brick); white-space:nowrap; }
+.tarjeta-presupuesto svg.chevron{ width:20px; height:20px; color:var(--ink-soft); flex-shrink:0; }
+
+.encabezado-seccion{
+  display:flex; align-items:center; justify-content:space-between;
+  margin:26px 0 12px;
+}
+.encabezado-seccion:first-child{ margin-top:0; }
+.encabezado-seccion h2{ font-size:20px; }
+
+.vacio{
+  text-align:center; padding:40px 18px; color:var(--ink-soft);
+}
+.vacio svg{ width:52px;height:52px; color:var(--line); margin-bottom:10px; }
+
+/* =====================================================================
+   5. FORMULARIOS
+   ===================================================================== */
+.campo{ margin-bottom:16px; }
+.campo label{
+  display:block; font-size:14px; font-weight:700; color:var(--ink-soft);
+  margin-bottom:6px;
+}
+.campo input[type=text], .campo input[type=tel], .campo input[type=number],
+.campo input[type=date], .campo select, .campo textarea{
+  width:100%; min-height:50px; padding:10px 13px;
+  border:1.5px solid var(--line); border-radius:var(--radius-sm);
+  background:var(--surface); color:var(--ink);
+}
+.campo textarea{ min-height:90px; resize:vertical; padding-top:12px; }
+.campo input:focus, .campo select:focus, .campo textarea:focus{ border-color:var(--brick); }
+.campo .ayuda{ font-size:12.5px; color:var(--ink-soft); margin-top:5px; }
+.fila-2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+@media (max-width:480px){ .fila-2.apilar-movil{ grid-template-columns:1fr; } }
+
+.switch-fila{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:13px 0;
+}
+.switch-fila .texto b{ display:block; font-size:15.5px; }
+.switch-fila .texto span{ font-size:13px; color:var(--ink-soft); }
+.switch{ position:relative; width:48px; height:28px; flex-shrink:0; }
+.switch input{ opacity:0; width:100%; height:100%; margin:0; position:absolute; z-index:2; cursor:pointer; }
+.switch .rail{
+  position:absolute; inset:0; background:var(--line); border-radius:99px; transition:background .15s;
+}
+.switch .bola{
+  position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%;
+  background:#fff; transition:transform .15s; box-shadow:0 1px 3px rgba(0,0,0,.3);
+}
+.switch input:checked ~ .rail{ background:var(--brick); }
+.switch input:checked ~ .bola{ transform:translateX(20px); }
+
+/* =====================================================================
+   6. TRABAJOS DENTRO DEL PRESUPUESTO
+   ===================================================================== */
+.trabajo-item{
+  border:1px solid var(--line); border-radius:var(--radius); padding:13px 14px;
+  margin-bottom:9px; background:var(--surface);
+}
+.trabajo-item .top{ display:flex; justify-content:space-between; gap:10px; }
+.trabajo-item .tipo{ font-size:12.5px; font-weight:700; color:var(--brick); text-transform:none; }
+.trabajo-item .desc{ font-size:15.5px; font-weight:600; margin-top:2px; }
+.trabajo-item .calc{ font-size:14px; color:var(--ink-soft); margin-top:7px; }
+.trabajo-item .subtotal{ font-size:16.5px; font-weight:700; margin-top:2px; }
+.trabajo-item .acciones{ display:flex; gap:4px; flex-shrink:0; }
+.trabajo-item .acciones button{
+  width:36px; height:36px; border-radius:50%; border:none; background:var(--surface-2); color:var(--ink-soft);
+}
+
+.tabla-trabajos{ display:none; }
+@media (min-width:780px){
+  .lista-trabajos-movil{ display:none; }
+  .tabla-trabajos{
+    display:table; width:100%; border-collapse:collapse; margin-bottom:14px;
+  }
+  .tabla-trabajos th{
+    text-align:left; font-size:12.5px; color:var(--ink-soft); font-weight:700;
+    padding:8px 10px; border-bottom:1.5px solid var(--line);
+  }
+  .tabla-trabajos td{ padding:10px; border-bottom:1px solid var(--line); font-size:14.5px; vertical-align:middle; }
+  .tabla-trabajos tr:hover td{ background:var(--surface-2); }
+  .tabla-trabajos td.num{ text-align:right; white-space:nowrap; }
+  .tabla-trabajos .acciones-tabla{ display:flex; gap:4px; justify-content:flex-end; }
+  .tabla-trabajos .acciones-tabla button{
+    width:32px; height:32px; border-radius:50%; border:none; background:var(--surface-2); color:var(--ink-soft);
+  }
+}
+
+.ambiente-bloque{ margin-bottom:18px; }
+.ambiente-cabecera{
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  margin-bottom:8px;
+}
+.ambiente-cabecera h3{ font-size:16.5px; }
+.ambiente-subtotal{
+  display:flex; justify-content:flex-end; padding:8px 4px; font-size:15px; font-weight:700;
+  color:var(--ink-soft);
+}
+
+/* =====================================================================
+   7. RESUMEN Y TOTALES
+   ===================================================================== */
+.resumen{
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+  padding:18px; margin-top:6px;
+}
+.resumen .linea{
+  display:flex; justify-content:space-between; padding:7px 0; font-size:15.5px; color:var(--ink-soft);
+}
+.resumen .linea b{ color:var(--ink); font-weight:600; }
+.resumen .linea-total{
+  display:flex; justify-content:space-between; align-items:center;
+  padding-top:14px; margin-top:6px; border-top:2px solid var(--line);
+}
+.resumen .linea-total span{ font-size:17px; font-weight:700; }
+.resumen .linea-total b{ font-size:29px; color:var(--brick); font-weight:800; }
+
+/* =====================================================================
+   8. MODALES
+   ===================================================================== */
+.overlay{
+  position:fixed; inset:0; background:rgba(20,17,14,.5); z-index:100;
+  display:flex; align-items:flex-end; justify-content:center;
+}
+.modal{
+  background:var(--surface); width:100%; max-width:480px;
+  border-radius:20px 20px 0 0; padding:22px 20px calc(20px + env(safe-area-inset-bottom));
+  box-shadow:var(--shadow-modal);
+  max-height:88vh; overflow-y:auto;
+}
+.modal h3{ font-size:19px; margin-bottom:8px; }
+.modal p{ color:var(--ink-soft); font-size:15px; margin-bottom:18px; }
+.modal .modal-botones{ display:flex; gap:10px; margin-top:6px; }
+.modal .modal-botones .btn{ flex:1; }
+@media (min-width:780px){
+  .overlay{ align-items:center; }
+  .modal{ border-radius:16px; max-height:85vh; }
+}
+
+.toast{
+  position:fixed; left:50%; bottom:96px; transform:translateX(-50%);
+  background:var(--ink); color:#fff; padding:12px 20px; border-radius:99px;
+  font-size:14.5px; font-weight:600; z-index:200; box-shadow:0 8px 20px rgba(0,0,0,.3);
+  display:flex; align-items:center; gap:8px;
+}
+@media (min-width:780px){ .toast{ bottom:26px; } }
+
+/* =====================================================================
+   9. CATÁLOGO DE PRECIOS
+   ===================================================================== */
+.precio-item{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  border:1px solid var(--line); border-radius:var(--radius); padding:13px 14px; margin-bottom:9px;
+  background:var(--surface);
+}
+.precio-item .info b{ display:block; font-size:15.5px; }
+.precio-item .info span{ font-size:13px; color:var(--ink-soft); }
+.precio-item .valor{ text-align:right; }
+.precio-item .valor b{ display:block; font-size:16px; }
+.precio-item .valor span{ font-size:12.5px; color:var(--ink-soft); }
+.chip-categoria{
+  display:inline-block; font-size:11.5px; font-weight:700; color:var(--brick);
+  background:var(--brick-tint); padding:2px 8px; border-radius:99px; margin-top:4px;
+}
+
+/* Buscador */
+.buscador{ position:relative; margin-bottom:14px; }
+.buscador svg{ position:absolute; left:14px; top:50%; transform:translateY(-50%); width:19px; height:19px; color:var(--ink-soft); }
+.buscador input{ width:100%; min-height:48px; padding:10px 14px 10px 40px; border:1.5px solid var(--line); border-radius:99px; background:var(--surface); }
+
+/* =====================================================================
+   10. CONFIGURACIÓN
+   ===================================================================== */
+.logo-selector{ display:flex; align-items:center; gap:14px; margin-bottom:6px; }
+.logo-preview{
+  width:66px; height:66px; border-radius:14px; background:var(--surface-2); border:1.5px dashed var(--line);
+  display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0;
+}
+.logo-preview img{ width:100%; height:100%; object-fit:cover; }
+.logo-preview svg{ width:26px; height:26px; color:var(--ink-soft); }
+
+/* =====================================================================
+   11. IMPRESIÓN / PDF
+   ===================================================================== */
+#print-area{ display:none; }
+@media print{
+  @page{ size:A4; margin:14mm; }
+  body *{ visibility:hidden; }
+  #print-area, #print-area *{ visibility:visible; }
+  #print-area{
+    display:block !important; position:absolute; top:0; left:0; width:100%; padding:0; margin:0;
+    color:#111; font-size:13px;
+  }
+  .hoja{ width:100%; }
+  .ph-header{ display:flex; align-items:center; gap:16px; border-bottom:3px solid #A8432E; padding-bottom:14px; margin-bottom:18px; }
+  .ph-logo{ width:56px;height:56px;border-radius:10px;object-fit:cover; }
+  .ph-empresa{ font-size:20px; font-weight:800; }
+  .ph-contacto{ font-size:12.5px; color:#555; margin-top:2px; }
+  .ph-titulo{ margin-left:auto; text-align:right; font-size:22px; font-weight:800; letter-spacing:.5px; color:#A8432E; }
+  .ph-datos-cliente{ display:flex; justify-content:space-between; gap:20px; margin-bottom:16px; font-size:13px; }
+  .ph-datos-cliente div b{ display:block; font-size:11px; color:#777; font-weight:700; margin-bottom:2px; }
+  table.ph-tabla{ width:100%; border-collapse:collapse; margin-bottom:14px; }
+  table.ph-tabla th{ text-align:left; font-size:11px; color:#666; border-bottom:2px solid #333; padding:6px 5px; }
+  table.ph-tabla td{ font-size:12.5px; padding:6px 5px; border-bottom:1px solid #ddd; }
+  table.ph-tabla td.num, table.ph-tabla th.num{ text-align:right; }
+  .ph-ambiente-titulo{ font-weight:700; font-size:13px; margin:10px 0 4px; color:#A8432E; }
+  .ph-resumen{ margin-left:auto; width:280px; margin-top:8px; }
+  .ph-resumen .linea{ display:flex; justify-content:space-between; font-size:13px; padding:4px 0; }
+  .ph-resumen .total{ display:flex; justify-content:space-between; font-size:18px; font-weight:800; border-top:2px solid #333; padding-top:8px; margin-top:6px; }
+  .ph-nota{ font-size:12px; margin-top:6px; color:#333; }
+  .ph-condiciones{ margin-top:22px; font-size:11.5px; color:#555; border-top:1px solid #ccc; padding-top:10px; white-space:pre-line; }
+}
+</style>
 </head>
 <body>
 
-<!-- ===================== TOP BAR (marca de la empresa) ===================== -->
-<header class="topbar" id="topbar">
-  <div class="topbar-brand">
-    <img id="brandLogo" class="brand-logo" alt="" hidden>
-    <div class="brand-text">
-      <strong id="brandName">Mi empresa</strong>
-      <span id="brandSub"></span>
-    </div>
-  </div>
-</header>
+<div id="app"></div>
+<div id="modal-root"></div>
+<div id="toast-root"></div>
+<div id="print-area"></div>
 
-<!-- ===================== NAV (sidebar en PC / bottom nav en móvil) ===================== -->
-<nav class="mainnav" id="mainnav" aria-label="Navegación principal">
-  <button class="navbtn" data-view="home" aria-current="page">
-    <svg viewBox="0 0 24 24" class="navicon"><path d="M4 11.5 12 4l8 7.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z"/></svg>
-    <span>Inicio</span>
-  </button>
-  <button class="navbtn" data-view="budgets">
-    <svg viewBox="0 0 24 24" class="navicon"><path d="M6 2h9l5 5v15H6zM14 2v6h5"/><path d="M9 13h6M9 17h6" stroke-linecap="round"/></svg>
-    <span>Presupuestos</span>
-  </button>
-  <button class="navbtn" data-view="prices">
-    <svg viewBox="0 0 24 24" class="navicon"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-    <span>Precios</span>
-  </button>
-  <button class="navbtn" data-view="settings">
-    <svg viewBox="0 0 24 24" class="navicon"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 0 1-4 0v-.09A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 0 1 0-4h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.55V3a2 2 0 0 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.1.36.28.68.55 1H21a2 2 0 0 1 0 4h-.09c-.32.1-.63.28-.85.55z"/></svg>
-    <span>Configuración</span>
-  </button>
-</nav>
+<script>
+(function(){
+"use strict";
 
-<!-- ===================== MAIN CONTENT ===================== -->
-<main id="app">
+/* =====================================================================
+   2. CONFIGURACIÓN INICIAL / DATOS POR DEFECTO
+   Modificá acá los valores iniciales de la empresa, los trabajos
+   habituales, los tipos de trabajo y el texto de condiciones.
+   Estos valores sólo se usan la primera vez que se abre la app;
+   después el usuario los edita desde "Configuración" y "Precios".
+   ===================================================================== */
+const CONFIG_INICIAL = {
+  empresa: "Nombre del Albañil",
+  telefono: "",
+  localidad: "",
+  logo: null, // se completa como imagen en base64 al subir un logo
+  condicionesDefault:
+"Presupuesto válido por 15 días.\nMateriales no incluidos, salvo indicación contraria.\nLos precios pueden variar ante modificaciones de la obra.\nSeña del 30% para reservar la fecha de inicio."
+};
 
-  <!-- ---------- INICIO ---------- -->
-  <section class="view" id="view-home" data-view="home">
-    <div class="view-header">
-      <h1>Presupuestos</h1>
-    </div>
-    <button class="btn btn-hero" id="btnNewBudgetHome">
-      <svg viewBox="0 0 24 24" class="icon"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
-      Nuevo presupuesto
-    </button>
+const TIPOS_TRABAJO_INICIALES = [
+  "Albañilería","Aberturas","Revoque grueso","Revoque fino","Carpeta",
+  "Piso cerámico","Contrapiso","Hormigón","Techo","Pintura","Demolición","Otros"
+];
 
-    <div id="draftBanner" class="draft-banner" hidden>
-      <div>
-        <strong>Tenés un presupuesto sin terminar</strong>
-        <span id="draftInfo"></span>
-      </div>
-      <div class="draft-banner-actions">
-        <button class="btn btn-ghost btn-small" id="btnDiscardDraft">Descartar</button>
-        <button class="btn btn-primary btn-small" id="btnResumeDraft">Continuar</button>
-      </div>
-    </div>
+const UNIDADES = ["m²","m","unidad","hora","día","trabajo","otro"];
 
-    <h2 class="section-title">Últimos presupuestos</h2>
-    <div id="homeRecentList" class="budget-list"></div>
-    <p class="empty-hint" id="homeEmptyHint" hidden>Todavía no creaste ningún presupuesto. Tocá "Nuevo presupuesto" para empezar.</p>
-  </section>
+const CATALOGO_INICIAL = [
+  { id:"c1", tipo:"Albañilería", descripcion:"Mampostería ladrillo cerámico del 12 en planta alta", unidad:"m²", precio:18000 },
+  { id:"c2", tipo:"Aberturas", descripcion:"Ventana de aluminio, reja, celosía y contorno de material", unidad:"unidad", precio:250000 },
+  { id:"c3", tipo:"Aberturas", descripcion:"Paño fijo", unidad:"unidad", precio:120000 },
+  { id:"c4", tipo:"Aberturas", descripcion:"Ventiluz", unidad:"unidad", precio:45000 },
+  { id:"c5", tipo:"Revoque grueso", descripcion:"Revoque exterior impermeabilizado y bolseado", unidad:"m²", precio:12000 },
+  { id:"c6", tipo:"Revoque fino", descripcion:"Revoque interior", unidad:"m²", precio:9000 },
+  { id:"c7", tipo:"Carpeta", descripcion:"Carpeta de nivelación para colocación de cerámico", unidad:"m²", precio:5000 },
+  { id:"c8", tipo:"Piso cerámico", descripcion:"Piso cerámico con colocación de zócalo", unidad:"m²", precio:18000 },
+  { id:"c9", tipo:"Piso cerámico", descripcion:"Revestimiento baño completo", unidad:"m²", precio:16000 },
+  { id:"c10", tipo:"Contrapiso", descripcion:"Completar alivianado y alisar con cemento", unidad:"m²", precio:7000 },
+  { id:"c11", tipo:"Demolición", descripcion:"Picar, cargar y sacar chapa", unidad:"m²", precio:4000 }
+];
 
-  <!-- ---------- PRESUPUESTOS (listado completo) ---------- -->
-  <section class="view" id="view-budgets" data-view="budgets">
-    <div class="view-header">
-      <h1>Presupuestos</h1>
-      <button class="btn btn-primary btn-small" id="btnNewBudgetList">+ Nuevo</button>
-    </div>
-    <input type="search" id="budgetSearch" class="input" placeholder="Buscar por cliente...">
-    <div id="allBudgetsList" class="budget-list"></div>
-    <p class="empty-hint" id="allBudgetsEmptyHint" hidden>No hay presupuestos guardados todavía.</p>
-  </section>
+/* =====================================================================
+   3. CLAVES DE ALMACENAMIENTO LOCAL
+   ===================================================================== */
+const LS = {
+  config:"pa_config",
+  tipos:"pa_tipos",
+  catalogo:"pa_catalogo",
+  presupuestos:"pa_presupuestos",
+  borrador:"pa_borrador"
+};
 
-  <!-- ---------- EDITOR DE PRESUPUESTO (wizard) ---------- -->
-  <section class="view" id="view-editor" data-view="editor">
-    <div class="editor-topbar">
-      <button class="btn btn-icon" id="btnEditorClose" aria-label="Cerrar">
-        <svg viewBox="0 0 24 24" class="icon"><path d="M18 6 6 18M6 6l12 12" stroke-linecap="round"/></svg>
-      </button>
-      <div class="stepper" id="stepper">
-        <button class="step" data-step="1"><span class="step-num">1</span><span class="step-label">Cliente</span></button>
-        <button class="step" data-step="2"><span class="step-num">2</span><span class="step-label">Trabajos</span></button>
-        <button class="step" data-step="3"><span class="step-num">3</span><span class="step-label">Resumen</span></button>
-      </div>
-    </div>
+/* =====================================================================
+   4. UTILIDADES
+   ===================================================================== */
+function guardar(clave, valor){
+  try{ localStorage.setItem(clave, JSON.stringify(valor)); return true; }
+  catch(e){ console.error("Error al guardar", e); return false; }
+}
+function leer(clave, porDefecto){
+  try{
+    const v = localStorage.getItem(clave);
+    if(v===null) return porDefecto;
+    return JSON.parse(v);
+  }catch(e){ return porDefecto; }
+}
+function uid(){ return Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,8); }
 
-    <!-- PASO 1: CLIENTE -->
-    <div class="step-panel" id="panel-1">
-      <h2 class="section-title">Datos del cliente</h2>
-      <div class="field">
-        <label for="clientName">Nombre y apellido / Empresa</label>
-        <input type="text" id="clientName" class="input" placeholder="Ej: Victoria y Emiliano">
-      </div>
-      <div class="field">
-        <label for="clientPhone">Teléfono</label>
-        <input type="tel" id="clientPhone" class="input" placeholder="Ej: 343 415-1234">
-      </div>
-      <div class="field">
-        <label for="clientAddress">Dirección de la obra</label>
-        <input type="text" id="clientAddress" class="input" placeholder="Ej: San Martín 1234">
-      </div>
-      <div class="field">
-        <label for="budgetDate">Fecha del presupuesto</label>
-        <input type="date" id="budgetDate" class="input">
-      </div>
+function formatARS(n){
+  n = Number(n);
+  if(!isFinite(n)) n = 0;
+  return "$ " + n.toLocaleString("es-AR", { minimumFractionDigits:2, maximumFractionDigits:2 });
+}
+function numero(v){
+  const n = parseFloat(v);
+  return isFinite(n) ? n : 0;
+}
+function hoyDDMMYYYY(){
+  const d = new Date();
+  return pad2(d.getDate())+"/"+pad2(d.getMonth()+1)+"/"+d.getFullYear();
+}
+function pad2(n){ return n<10 ? "0"+n : ""+n; }
+function escapeHtml(s){
+  if(s===undefined||s===null) return "";
+  return String(s).replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[c]));
+}
 
-      <div class="field field-toggle">
-        <label class="switch-row">
-          <span>Organizar por ambientes</span>
-          <span class="switch"><input type="checkbox" id="useAmbientes"><span class="slider"></span></span>
-        </label>
-        <p class="field-hint">Activalo si querés agrupar los trabajos por baño, cocina, etc. Si no, todos los trabajos van juntos.</p>
-      </div>
+/* =====================================================================
+   5. ICONOS (SVG embebidos — sin dependencias externas)
+   ===================================================================== */
+const ICONOS = {
+  presupuestos:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 12h6M9 16h6M9 8h2"/></svg>',
+  precios:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3.24L4 3a1 1 0 0 0-1 1l.24 5.59a2 2 0 0 0 .58 1.41l9.58 9.59a2 2 0 0 0 2.83 0l4.36-4.36a2 2 0 0 0 0-2.82Z"/><circle cx="7.5" cy="7.5" r="1.2" fill="currentColor" stroke="none"/></svg>',
+  config:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.11.63.51 1.18 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>',
+  mas:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  atras:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>',
+  chevron:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>',
+  lapiz:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>',
+  tacho:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>',
+  copiar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+  impresora:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>',
+  descargar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>',
+  subir:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>',
+  buscar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>',
+  cerrar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>',
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>',
+  cajaVacia:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8"/><path d="M2 6h20l-2 4H4Z"/><path d="M12 12v4"/></svg>',
+  foto:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="15" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M21 17l-5-5-4 4-3-3-4 4"/></svg>',
+  casita:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"/></svg>'
+};
 
-      <button class="btn btn-primary btn-block" id="btnStep1Next">Siguiente: Trabajos</button>
-    </div>
+/* =====================================================================
+   6. ESTADO DE LA APLICACIÓN
+   ===================================================================== */
+let estado = {
+  pantalla:"inicio",          // inicio | editor | precios | config
+  editandoId:null,             // id del presupuesto en edición (o null = nuevo)
+  presupuestoActual:null,      // objeto en edición
+  filtroPrecio:""
+};
 
-    <!-- PASO 2: TRABAJOS -->
-    <div class="step-panel" id="panel-2" hidden>
-      <div id="ambientesWrap" hidden>
-        <div class="ambientes-tabs" id="ambientesTabs"></div>
-        <button class="btn btn-ghost btn-small" id="btnAddAmbiente">+ Agregar ambiente</button>
-      </div>
+let DB = {
+  config: leer(LS.config, CONFIG_INICIAL),
+  tipos: leer(LS.tipos, TIPOS_TRABAJO_INICIALES),
+  catalogo: leer(LS.catalogo, CATALOGO_INICIAL),
+  presupuestos: leer(LS.presupuestos, [])
+};
+if(!DB.config) DB.config = CONFIG_INICIAL;
+if(!DB.tipos || !DB.tipos.length) DB.tipos = TIPOS_TRABAJO_INICIALES.slice();
+if(!DB.catalogo) DB.catalogo = CATALOGO_INICIAL.slice();
+if(!DB.presupuestos) DB.presupuestos = [];
 
-      <h2 class="section-title" id="jobsSectionTitle">Trabajos</h2>
-      <div id="jobsList" class="jobs-list"></div>
-      <p class="empty-hint" id="jobsEmptyHint">Todavía no agregaste trabajos.</p>
+function persistirTodo(){
+  guardar(LS.config, DB.config);
+  guardar(LS.tipos, DB.tipos);
+  guardar(LS.catalogo, DB.catalogo);
+  guardar(LS.presupuestos, DB.presupuestos);
+}
 
-      <button class="btn btn-hero" id="btnAddJob">
-        <svg viewBox="0 0 24 24" class="icon"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
-        Agregar trabajo
-      </button>
+/* =====================================================================
+   7. AUTOGUARDADO / RECUPERACIÓN DE BORRADOR
+   ===================================================================== */
+let autosaveTimer = null;
+function programarAutoguardado(){
+  clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(()=>{
+    if(estado.presupuestoActual){
+      guardar(LS.borrador, { editandoId: estado.editandoId, datos: estado.presupuestoActual, ts:Date.now() });
+    }
+  }, 500);
+}
+function limpiarBorrador(){
+  localStorage.removeItem(LS.borrador);
+}
 
-      <div class="sticky-total">
-        <span>Total</span>
-        <strong id="stickyTotal">$ 0,00</strong>
-      </div>
+/* =====================================================================
+   8. CÁLCULOS DEL PRESUPUESTO
+   ===================================================================== */
+function subtotalTrabajo(t){ return numero(t.cantidad) * numero(t.precio); }
 
-      <div class="editor-actions">
-        <button class="btn btn-ghost" id="btnStep2Back">Atrás</button>
-        <button class="btn btn-primary" id="btnStep2Next">Siguiente: Resumen</button>
-      </div>
-    </div>
+function listaDeTrabajos(p){
+  if(p.modo==="ambientes"){
+    let todos = [];
+    (p.ambientes||[]).forEach(a=>{ todos = todos.concat(a.trabajos||[]); });
+    return todos;
+  }
+  return p.trabajos||[];
+}
 
-    <!-- PASO 3: RESUMEN -->
-    <div class="step-panel" id="panel-3" hidden>
-      <h2 class="section-title">Materiales</h2>
-      <div class="field">
-        <div class="segmented" id="materialsMode">
-          <button class="seg-btn" data-value="incluidos">Incluidos</button>
-          <button class="seg-btn" data-value="no_incluidos">No incluidos</button>
-          <button class="seg-btn" data-value="a_cargo_cliente">A cargo del cliente</button>
-        </div>
-      </div>
+function calcularTotales(p){
+  const trabajos = listaDeTrabajos(p);
+  const subtotal = trabajos.reduce((acc,t)=>acc+subtotalTrabajo(t), 0);
+  let montoRecargo = 0;
+  if(p.recargo && numero(p.recargo.valor) > 0){
+    montoRecargo = p.recargo.tipo==="porcentaje" ? subtotal * numero(p.recargo.valor)/100 : numero(p.recargo.valor);
+  }
+  let montoDescuento = 0;
+  if(p.descuento && numero(p.descuento.valor) > 0){
+    montoDescuento = p.descuento.tipo==="porcentaje" ? subtotal * numero(p.descuento.valor)/100 : numero(p.descuento.valor);
+  }
+  const total = subtotal + montoRecargo - montoDescuento;
+  return { subtotal, montoRecargo, montoDescuento, total: total<0?0:total };
+}
 
-      <div class="field field-toggle">
-        <label class="switch-row">
-          <span>Separar mano de obra y materiales</span>
-          <span class="switch"><input type="checkbox" id="useSplit"><span class="slider"></span></span>
-        </label>
-      </div>
-      <div id="splitFields" class="split-fields" hidden>
-        <div class="field">
-          <label for="laborTotal">Mano de obra ($)</label>
-          <input type="text" inputmode="decimal" id="laborTotal" class="input money-input" placeholder="0,00">
-        </div>
-        <div class="field">
-          <label for="materialsTotal">Materiales ($)</label>
-          <input type="text" inputmode="decimal" id="materialsTotal" class="input money-input" placeholder="0,00">
-        </div>
-      </div>
+/* =====================================================================
+   9. PRESUPUESTO EN BLANCO
+   ===================================================================== */
+function presupuestoVacio(){
+  return {
+    id:null,
+    cliente:{ nombre:"", telefono:"", direccion:"" },
+    fecha: hoyDDMMYYYY(),
+    modo:"general",
+    trabajos:[],
+    ambientes:[],
+    materialesConfig:{ modo:"no_incluidos", separar:false, manoObra:0, materiales:0 },
+    recargo:{ tipo:"porcentaje", valor:0 },
+    descuento:{ tipo:"porcentaje", valor:0 },
+    condiciones: DB.config.condicionesDefault || "",
+    createdAt:null, updatedAt:null
+  };
+}
 
-      <h2 class="section-title">Recargos y descuentos</h2>
-      <div class="field field-toggle">
-        <label class="switch-row">
-          <span>Aplicar recargo</span>
-          <span class="switch"><input type="checkbox" id="useRecargo"><span class="slider"></span></span>
-        </label>
-      </div>
-      <div id="recargoFields" class="recargo-fields" hidden>
-        <div class="field-row">
-          <div class="field">
-            <label for="recargoPercent">Recargo %</label>
-            <input type="text" inputmode="decimal" id="recargoPercent" class="input" placeholder="0">
-          </div>
-          <div class="field">
-            <label for="recargoFixed">Recargo fijo ($)</label>
-            <input type="text" inputmode="decimal" id="recargoFixed" class="input money-input" placeholder="0,00">
-          </div>
-        </div>
-      </div>
+/* =====================================================================
+   10. RENDERIZADO PRINCIPAL
+   ===================================================================== */
+const app = document.getElementById("app");
 
-      <div class="field field-toggle">
-        <label class="switch-row">
-          <span>Aplicar descuento</span>
-          <span class="switch"><input type="checkbox" id="useDescuento"><span class="slider"></span></span>
-        </label>
-      </div>
-      <div id="descuentoFields" class="recargo-fields" hidden>
-        <div class="field-row">
-          <div class="field">
-            <label for="descuentoPercent">Descuento %</label>
-            <input type="text" inputmode="decimal" id="descuentoPercent" class="input" placeholder="0">
-          </div>
-          <div class="field">
-            <label for="descuentoFixed">Descuento fijo ($)</label>
-            <input type="text" inputmode="decimal" id="descuentoFixed" class="input money-input" placeholder="0,00">
-          </div>
-        </div>
-      </div>
+function render(){
+  let html = "";
+  html += renderTopbar();
+  html += '<div class="main-content" id="main-content">';
+  if(estado.pantalla==="inicio") html += renderInicio();
+  else if(estado.pantalla==="editor") html += renderEditor();
+  else if(estado.pantalla==="precios") html += renderPrecios();
+  else if(estado.pantalla==="config") html += renderConfig();
+  html += "</div>";
+  html += renderNav();
+  if(estado.pantalla==="inicio"){
+    html += '<button class="fab" id="btn-fab-nuevo" aria-label="Nuevo presupuesto">'+ICONOS.mas+'</button>';
+  }
+  app.innerHTML = html;
+  adjuntarEventos();
+}
 
-      <h2 class="section-title">Condiciones <span class="optional-tag">opcional</span></h2>
-      <div class="field field-toggle">
-        <label class="switch-row">
-          <span>Incluir condiciones</span>
-          <span class="switch"><input type="checkbox" id="useConditions"><span class="slider"></span></span>
-        </label>
-      </div>
-      <div id="conditionsField" class="field" hidden>
-        <textarea id="conditionsText" class="input textarea" rows="4"></textarea>
-      </div>
+function renderTopbar(){
+  const titulos = { inicio:"Presupuestos", editor: estado.editandoId ? "Editar presupuesto" : "Nuevo presupuesto", precios:"Precios", config:"Configuración" };
+  const mostrarVolver = estado.pantalla==="editor";
+  let logo = DB.config.logo
+    ? '<img class="marca-logo" src="'+DB.config.logo+'" alt="Logo">'
+    : '';
+  return '<div class="topbar">'
+    + (mostrarVolver ? '<button class="btn-volver" id="btn-topbar-volver" aria-label="Volver">'+ICONOS.atras+'</button>' : (logo||''))
+    + '<div class="marca"><div><h1>'+escapeHtml(titulos[estado.pantalla])+'</h1>'
+    + (estado.pantalla==="inicio" && DB.config.empresa ? '<div class="subt">'+escapeHtml(DB.config.empresa)+'</div>' : '')
+    + '</div></div>'
+    + '</div>';
+}
 
-      <div class="totals-card" id="totalsCard">
-        <div class="totals-row"><span>Subtotal</span><strong id="totSubtotal">$ 0,00</strong></div>
-        <div class="totals-row" id="totRecargoRow" hidden><span>Recargo</span><strong id="totRecargo">$ 0,00</strong></div>
-        <div class="totals-row" id="totDescuentoRow" hidden><span>Descuento</span><strong id="totDescuento">$ 0,00</strong></div>
-        <div class="totals-row totals-final"><span>TOTAL</span><strong id="totFinal">$ 0,00</strong></div>
-      </div>
+function renderNav(){
+  const items = [
+    { id:"inicio", icono:ICONOS.presupuestos, label:"Presupuestos" },
+    { id:"precios", icono:ICONOS.precios, label:"Precios" },
+    { id:"config", icono:ICONOS.config, label:"Configuración" }
+  ];
+  let activa = estado.pantalla==="editor" ? "inicio" : estado.pantalla;
+  let logoDesktop = DB.config.logo
+    ? '<img src="'+DB.config.logo+'" alt="Logo">'
+    : '<div style="width:36px;height:36px;border-radius:9px;background:var(--brick-tint)"></div>';
+  let html = '<nav class="bottom-nav">';
+  html += '<div class="marca-desktop">'+logoDesktop+'<b>'+escapeHtml(DB.config.empresa||"Mi empresa")+'</b></div>';
+  items.forEach(it=>{
+    html += '<button data-nav="'+it.id+'" class="'+(activa===it.id?"activo":"")+'">'+it.icono+'<span>'+it.label+'</span></button>';
+  });
+  html += '</nav>';
+  return html;
+}
 
-      <div class="editor-actions">
-        <button class="btn btn-ghost" id="btnStep3Back">Atrás</button>
-      </div>
-      <div class="editor-actions editor-actions-final">
-        <button class="btn btn-secondary btn-block" id="btnSaveBudget">Guardar</button>
-        <button class="btn btn-primary btn-block" id="btnSavePdf">Guardar como PDF</button>
-      </div>
-    </div>
-  </section>
+/* ---------- PANTALLA: INICIO ---------- */
+function renderInicio(){
+  const lista = DB.presupuestos.slice().sort((a,b)=> (b.updatedAt||0)-(a.updatedAt||0));
+  let html = '<button class="btn btn-primario btn-bloque" id="btn-nuevo-presupuesto" style="margin-bottom:20px;">'+ICONOS.mas+' Nuevo presupuesto</button>';
+  if(!lista.length){
+    html += '<div class="vacio">'+ICONOS.cajaVacia+'<p>Todavía no creaste ningún presupuesto.<br>Tocá "Nuevo presupuesto" para comenzar.</p></div>';
+  }else{
+    html += '<div class="encabezado-seccion"><h2>Presupuestos anteriores</h2></div>';
+    lista.forEach(p=>{
+      const tot = calcularTotales(p);
+      html += '<button class="tarjeta-presupuesto" data-abrir="'+p.id+'">'
+        + '<div class="datos"><div class="cliente">'+escapeHtml(p.cliente.nombre||"Sin nombre")+'</div>'
+        + '<div class="fecha">'+escapeHtml(p.fecha)+'</div></div>'
+        + '<div class="total">'+formatARS(tot.total)+'</div>'
+        + '<span class="chevron">'+ICONOS.chevron+'</span>'
+        + '</button>';
+    });
+  }
+  return html;
+}
 
-  <!-- ---------- FICHA DE PRESUPUESTO GUARDADO ---------- -->
-  <section class="view" id="view-detail" data-view="detail">
-    <div class="editor-topbar">
-      <button class="btn btn-icon" id="btnDetailClose" aria-label="Volver">
-        <svg viewBox="0 0 24 24" class="icon"><path d="m15 18-6-6 6-6" stroke-linecap="round"/></svg>
-      </button>
-      <h2 id="detailTitle">Presupuesto</h2>
-    </div>
-    <div id="detailContent"></div>
-    <div class="detail-actions">
-      <button class="btn btn-ghost" id="btnDetailEdit">Editar</button>
-      <button class="btn btn-ghost" id="btnDetailDuplicate">Duplicar</button>
-      <button class="btn btn-primary" id="btnDetailPdf">Exportar PDF</button>
-      <button class="btn btn-danger" id="btnDetailDelete">Eliminar</button>
-    </div>
-  </section>
+/* ---------- PANTALLA: CATÁLOGO DE PRECIOS ---------- */
+function renderPrecios(){
+  let html = '<button class="btn btn-primario btn-bloque" id="btn-nuevo-precio" style="margin-bottom:16px;">'+ICONOS.mas+' Agregar trabajo al catálogo</button>';
+  html += '<div class="buscador">'+ICONOS.buscar+'<input type="text" id="buscador-precios" placeholder="Buscar trabajo..." value="'+escapeHtml(estado.filtroPrecio)+'"></div>';
 
-  <!-- ---------- PRECIOS ---------- -->
-  <section class="view" id="view-prices" data-view="prices">
-    <div class="view-header">
-      <h1>Precios</h1>
-      <button class="btn btn-primary btn-small" id="btnUpdatePrices">Actualizar precios</button>
-    </div>
-    <button class="btn btn-hero" id="btnAddCatalogItem">
-      <svg viewBox="0 0 24 24" class="icon"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
-      Agregar trabajo al catálogo
-    </button>
-    <div id="catalogList" class="catalog-list"></div>
-    <p class="empty-hint" id="catalogEmptyHint" hidden>No hay trabajos cargados en el catálogo.</p>
-  </section>
+  let items = DB.catalogo.slice();
+  if(estado.filtroPrecio){
+    const f = estado.filtroPrecio.toLowerCase();
+    items = items.filter(it => (it.descripcion+" "+it.tipo).toLowerCase().includes(f));
+  }
+  items.sort((a,b)=> a.tipo.localeCompare(b.tipo) || a.descripcion.localeCompare(b.descripcion));
 
-  <!-- ---------- CONFIGURACIÓN ---------- -->
-  <section class="view" id="view-settings" data-view="settings">
-    <div class="view-header"><h1>Configuración</h1></div>
+  if(!items.length){
+    html += '<div class="vacio">'+ICONOS.cajaVacia+'<p>No se encontraron trabajos en el catálogo.</p></div>';
+  }else{
+    items.forEach(it=>{
+      html += '<div class="precio-item">'
+        + '<div class="info"><b>'+escapeHtml(it.descripcion)+'</b><span class="chip-categoria">'+escapeHtml(it.tipo)+'</span></div>'
+        + '<div class="valor"><b>'+formatARS(it.precio)+'</b><span>por '+escapeHtml(it.unidad)+'</span></div>'
+        + '<div class="acciones" style="display:flex;gap:4px;margin-left:6px;">'
+        + '<button class="btn-icono" data-editar-precio="'+it.id+'" aria-label="Editar">'+ICONOS.lapiz+'</button>'
+        + '<button class="btn-icono" data-borrar-precio="'+it.id+'" aria-label="Eliminar">'+ICONOS.tacho+'</button>'
+        + '</div></div>';
+    });
+  }
+  return html;
+}
 
-    <h2 class="section-title">Datos de la empresa</h2>
-    <div class="field">
-      <label for="cfgCompanyName">Nombre de la empresa / albañil</label>
-      <input type="text" id="cfgCompanyName" class="input" placeholder="Ej: Juan Pérez - Construcciones">
-    </div>
-    <div class="field">
-      <label for="cfgPhone">Teléfono</label>
-      <input type="tel" id="cfgPhone" class="input" placeholder="Ej: 343 415-1234">
-    </div>
-    <div class="field">
-      <label for="cfgLocality">Localidad</label>
-      <input type="text" id="cfgLocality" class="input" placeholder="Ej: Paraná, Entre Ríos">
-    </div>
-    <div class="field">
-      <label>Logo</label>
-      <div class="logo-picker">
-        <img id="cfgLogoPreview" class="logo-preview" alt="" hidden>
-        <div class="logo-picker-actions">
-          <label class="btn btn-ghost btn-small" for="cfgLogoInput">Elegir imagen</label>
-          <input type="file" id="cfgLogoInput" accept="image/*" hidden>
-          <button class="btn btn-ghost btn-small" id="btnRemoveLogo">Quitar logo</button>
-        </div>
-      </div>
-    </div>
-    <button class="btn btn-primary" id="btnSaveCompany">Guardar datos de la empresa</button>
+/* ---------- PANTALLA: CONFIGURACIÓN ---------- */
+function renderConfig(){
+  const c = DB.config;
+  let html = '';
+  html += '<div class="tarjeta" style="margin-bottom:18px;">';
+  html += '<h3 style="margin-bottom:14px;">Datos de la empresa</h3>';
+  html += '<div class="logo-selector">'
+    + '<div class="logo-preview" id="logo-preview">'+(c.logo?'<img src="'+c.logo+'" alt="Logo">':ICONOS.foto)+'</div>'
+    + '<div><button class="btn btn-secundario btn-chico" id="btn-subir-logo">'+ICONOS.subir+' Subir logo</button>'
+    + (c.logo?'<button class="btn btn-fantasma btn-chico" id="btn-quitar-logo">Quitar logo</button>':'')
+    + '</div><input type="file" id="input-logo" accept="image/*" class="oculto"></div>';
+  html += campoTexto("cfg-empresa","Nombre de la empresa / del albañil", c.empresa);
+  html += campoTexto("cfg-telefono","Teléfono", c.telefono, "tel");
+  html += campoTexto("cfg-localidad","Localidad", c.localidad);
+  html += '</div>';
 
-    <h2 class="section-title">Plantilla de condiciones</h2>
-    <p class="field-hint">Este texto aparece por defecto al activar "Condiciones" en un presupuesto nuevo.</p>
-    <div class="field">
-      <textarea id="cfgConditionsTemplate" class="input textarea" rows="5"></textarea>
-    </div>
-    <button class="btn btn-primary" id="btnSaveConditions">Guardar plantilla</button>
+  html += '<div class="tarjeta" style="margin-bottom:18px;">';
+  html += '<h3 style="margin-bottom:10px;">Condiciones predeterminadas</h3>';
+  html += '<p style="color:var(--ink-soft);font-size:14px;margin-bottom:10px;">Este texto se va a sugerir automáticamente en cada presupuesto nuevo.</p>';
+  html += '<div class="campo"><textarea id="cfg-condiciones" rows="4">'+escapeHtml(c.condicionesDefault||"")+'</textarea></div>';
+  html += '</div>';
 
-    <h2 class="section-title">Categorías de trabajo</h2>
-    <p class="field-hint">Son las opciones que aparecen al elegir el tipo de trabajo.</p>
-    <div id="categoriesList" class="chip-list"></div>
-    <div class="field-row">
-      <input type="text" id="newCategoryInput" class="input" placeholder="Nueva categoría">
-      <button class="btn btn-secondary" id="btnAddCategory">Agregar</button>
-    </div>
+  html += '<button class="btn btn-primario btn-bloque" id="btn-guardar-config" style="margin-bottom:26px;">'+ICONOS.check+' Guardar cambios</button>';
 
-    <h2 class="section-title">Copia de seguridad</h2>
-    <p class="field-hint">Guardá una copia de todos tus datos (empresa, precios y presupuestos) para no perderlos si cambiás de celular.</p>
-    <button class="btn btn-primary btn-block" id="btnExportBackup">Exportar copia de seguridad</button>
-    <label class="btn btn-secondary btn-block" for="importBackupInput" style="margin-top:10px;">Importar copia de seguridad</label>
-    <input type="file" id="importBackupInput" accept="application/json" hidden>
+  html += '<div class="tarjeta" style="margin-bottom:18px;">';
+  html += '<h3 style="margin-bottom:6px;">Copia de seguridad</h3>';
+  html += '<p style="color:var(--ink-soft);font-size:14px;margin-bottom:14px;">Guardá una copia de todos tus datos, o recuperala en otro dispositivo.</p>';
+  html += '<button class="btn btn-secundario btn-bloque" id="btn-exportar" style="margin-bottom:10px;">'+ICONOS.descargar+' Exportar backup</button>';
+  html += '<button class="btn btn-secundario btn-bloque" id="btn-importar">'+ICONOS.subir+' Importar backup</button>';
+  html += '<input type="file" id="input-backup" accept="application/json" class="oculto">';
+  html += '</div>';
 
-    <p class="app-version">Presupuestos · funciona sin conexión a Internet</p>
-  </section>
+  html += '<div style="text-align:center;color:var(--ink-soft);font-size:12.5px;padding:6px 0 20px;">Aplicación de presupuestos — todos los datos se guardan únicamente en este dispositivo.</div>';
+  return html;
+}
 
-</main>
+function campoTexto(id,label,valor,tipo){
+  tipo = tipo||"text";
+  return '<div class="campo"><label for="'+id+'">'+escapeHtml(label)+'</label><input type="'+tipo+'" id="'+id+'" value="'+escapeHtml(valor||"")+'"></div>';
+}
 
-<!-- ===================== MODAL: AGREGAR / EDITAR TRABAJO EN PRESUPUESTO ===================== -->
-<div class="modal-overlay" id="jobModalOverlay" hidden>
-  <div class="modal" id="jobModal">
-    <div class="modal-header">
-      <h3 id="jobModalTitle">Agregar trabajo</h3>
-      <button class="btn btn-icon" id="jobModalClose" aria-label="Cerrar">
-        <svg viewBox="0 0 24 24" class="icon"><path d="M18 6 6 18M6 6l12 12" stroke-linecap="round"/></svg>
-      </button>
-    </div>
-    <div class="modal-body">
-      <div class="field">
-        <label for="jobFromCatalog">Elegir del catálogo</label>
-        <select id="jobFromCatalog" class="input">
-          <option value="">— Trabajo nuevo / manual —</option>
-        </select>
-      </div>
-      <div class="field">
-        <label for="jobCategory">Tipo de trabajo</label>
-        <select id="jobCategory" class="input"></select>
-      </div>
-      <div class="field">
-        <label for="jobDescription">Descripción</label>
-        <input type="text" id="jobDescription" class="input" placeholder="Ej: Revoque exterior impermeabilizado">
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label for="jobUnit">Unidad</label>
-          <select id="jobUnit" class="input">
-            <option value="m²">m²</option>
-            <option value="m">m</option>
-            <option value="unidad">unidad</option>
-            <option value="hora">hora</option>
-            <option value="día">día</option>
-            <option value="trabajo">trabajo</option>
-            <option value="otro">otro</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="jobQuantity">Cantidad</label>
-          <input type="text" inputmode="decimal" id="jobQuantity" class="input" placeholder="0">
-        </div>
-      </div>
-      <div class="field">
-        <label for="jobPrice">Precio unitario ($)</label>
-        <input type="text" inputmode="decimal" id="jobPrice" class="input money-input" placeholder="0,00">
-      </div>
-      <div class="job-subtotal-preview">
-        <span>Subtotal</span>
-        <strong id="jobSubtotalPreview">$ 0,00</strong>
-      </div>
-      <p class="field-error" id="jobModalError" hidden></p>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" id="jobModalCancel">Cancelar</button>
-      <button class="btn btn-primary" id="jobModalSave">Guardar trabajo</button>
-    </div>
-  </div>
-</div>
+/* ---------- PANTALLA: EDITOR DE PRESUPUESTO ---------- */
+function renderEditor(){
+  const p = estado.presupuestoActual;
+  const tot = calcularTotales(p);
+  let html = "";
 
-<!-- ===================== MODAL: TRABAJO DE CATÁLOGO ===================== -->
-<div class="modal-overlay" id="catalogModalOverlay" hidden>
-  <div class="modal" id="catalogModal">
-    <div class="modal-header">
-      <h3 id="catalogModalTitle">Agregar trabajo</h3>
-      <button class="btn btn-icon" id="catalogModalClose" aria-label="Cerrar">
-        <svg viewBox="0 0 24 24" class="icon"><path d="M18 6 6 18M6 6l12 12" stroke-linecap="round"/></svg>
-      </button>
-    </div>
-    <div class="modal-body">
-      <div class="field">
-        <label for="catCategory">Tipo / categoría</label>
-        <select id="catCategory" class="input"></select>
-      </div>
-      <div class="field">
-        <label for="catName">Nombre del trabajo</label>
-        <input type="text" id="catName" class="input" placeholder="Ej: Revoque grueso">
-      </div>
-      <div class="field">
-        <label for="catDescription">Descripción predeterminada</label>
-        <input type="text" id="catDescription" class="input" placeholder="Ej: Revoque grueso a la cal en muros exteriores">
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label for="catUnit">Unidad</label>
-          <select id="catUnit" class="input">
-            <option value="m²">m²</option>
-            <option value="m">m</option>
-            <option value="unidad">unidad</option>
-            <option value="hora">hora</option>
-            <option value="día">día</option>
-            <option value="trabajo">trabajo</option>
-            <option value="otro">otro</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="catPrice">Precio ($)</label>
-          <input type="text" inputmode="decimal" id="catPrice" class="input money-input" placeholder="0,00">
-        </div>
-      </div>
-      <p class="field-error" id="catalogModalError" hidden></p>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" id="catalogModalCancel">Cancelar</button>
-      <button class="btn btn-danger btn-hide-new" id="catalogModalDelete">Eliminar</button>
-      <button class="btn btn-primary" id="catalogModalSave">Guardar</button>
-    </div>
-  </div>
-</div>
+  html += '<div class="tarjeta" style="margin-bottom:18px;"><h3 style="margin-bottom:12px;">Datos del cliente</h3>';
+  html += campoTexto("ed-nombre","Nombre y apellido / Empresa", p.cliente.nombre);
+  html += '<div class="fila-2 apilar-movil">';
+  html += campoTexto("ed-telefono","Teléfono", p.cliente.telefono, "tel");
+  html += '<div class="campo"><label for="ed-fecha">Fecha</label><input type="text" id="ed-fecha" value="'+escapeHtml(p.fecha)+'" placeholder="DD/MM/AAAA"></div>';
+  html += '</div>';
+  html += campoTexto("ed-direccion","Dirección de la obra", p.cliente.direccion);
+  html += '</div>';
 
-<!-- ===================== MODAL: ACTUALIZAR PRECIOS EN LOTE ===================== -->
-<div class="modal-overlay" id="bulkPricesOverlay" hidden>
-  <div class="modal modal-large" id="bulkPricesModal">
-    <div class="modal-header">
-      <h3>Actualizar precios</h3>
-      <button class="btn btn-icon" id="bulkPricesClose" aria-label="Cerrar">
-        <svg viewBox="0 0 24 24" class="icon"><path d="M18 6 6 18M6 6l12 12" stroke-linecap="round"/></svg>
-      </button>
-    </div>
-    <div class="modal-body">
-      <p class="field-hint">Modificá los precios que necesites y tocá "Guardar cambios" al terminar.</p>
-      <div id="bulkPricesList" class="bulk-prices-list"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" id="bulkPricesCancel">Cancelar</button>
-      <button class="btn btn-primary" id="bulkPricesSave">Guardar cambios</button>
-    </div>
-  </div>
-</div>
+  html += '<div class="tarjeta" style="margin-bottom:18px;">';
+  html += '<div class="switch-fila"><div class="texto"><b>Organizar por ambientes</b><span>Agrupar los trabajos por baño, cocina, etc.</span></div>';
+  html += '<label class="switch"><input type="checkbox" id="ed-modo-ambientes" '+(p.modo==="ambientes"?"checked":"")+'><span class="rail"></span><span class="bola"></span></label></div>';
+  html += '</div>';
 
-<!-- ===================== MODAL: CONFIRMACIÓN GENÉRICA ===================== -->
-<div class="modal-overlay" id="confirmOverlay" hidden>
-  <div class="modal modal-small" id="confirmModal">
-    <div class="modal-body">
-      <p id="confirmMessage"></p>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" id="confirmCancel">Cancelar</button>
-      <button class="btn btn-danger" id="confirmOk">Confirmar</button>
-    </div>
-  </div>
-</div>
+  html += '<div class="encabezado-seccion"><h2>Trabajos</h2></div>';
+  html += renderTrabajosSeccion(p);
+  html += '<button class="btn btn-primario btn-bloque" id="btn-agregar-trabajo" style="margin:14px 0 24px;">'+ICONOS.mas+' Agregar trabajo</button>';
 
-<!-- ===================== TOAST ===================== -->
-<div class="toast" id="toast" hidden></div>
+  html += '<div class="tarjeta" style="margin-bottom:18px;">';
+  html += '<h3 style="margin-bottom:12px;">Materiales</h3>';
+  html += '<div class="campo"><label for="ed-materiales-modo">Materiales</label><select id="ed-materiales-modo">'
+    + optSel("incluidos","Incluidos",p.materialesConfig.modo)
+    + optSel("no_incluidos","No incluidos",p.materialesConfig.modo)
+    + optSel("cliente","A cargo del cliente",p.materialesConfig.modo)
+    + '</select></div>';
+  html += '<div class="switch-fila"><div class="texto"><b>Separar mano de obra y materiales</b><span>Mostrar el detalle en el resumen</span></div>';
+  html += '<label class="switch"><input type="checkbox" id="ed-separar" '+(p.materialesConfig.separar?"checked":"")+'><span class="rail"></span><span class="bola"></span></label></div>';
+  if(p.materialesConfig.separar){
+    html += '<div class="fila-2 apilar-movil">';
+    html += '<div class="campo"><label for="ed-mano-obra">Mano de obra ($)</label><input type="number" min="0" step="0.01" id="ed-mano-obra" value="'+p.materialesConfig.manoObra+'"></div>';
+    html += '<div class="campo"><label for="ed-materiales">Materiales ($)</label><input type="number" min="0" step="0.01" id="ed-materiales" value="'+p.materialesConfig.materiales+'"></div>';
+    html += '</div>';
+  }
+  html += '</div>';
 
-<!-- ===================== ÁREA DE IMPRESIÓN (solo visible al imprimir) ===================== -->
-<div id="printArea"></div>
+  html += '<div class="tarjeta" style="margin-bottom:18px;">';
+  html += '<h3 style="margin-bottom:12px;">Recargo y descuento</h3>';
+  html += '<div class="fila-2 apilar-movil">';
+  html += '<div class="campo"><label for="ed-recargo-tipo">Recargo</label><select id="ed-recargo-tipo">'
+    + optSel("porcentaje","Porcentaje (%)",p.recargo.tipo) + optSel("monto","Monto fijo ($)",p.recargo.tipo) + '</select></div>';
+  html += '<div class="campo"><label for="ed-recargo-valor">Valor</label><input type="number" min="0" step="0.01" id="ed-recargo-valor" value="'+p.recargo.valor+'"></div>';
+  html += '</div>';
+  html += '<div class="fila-2 apilar-movil">';
+  html += '<div class="campo"><label for="ed-descuento-tipo">Descuento</label><select id="ed-descuento-tipo">'
+    + optSel("porcentaje","Porcentaje (%)",p.descuento.tipo) + optSel("monto","Monto fijo ($)",p.descuento.tipo) + '</select></div>';
+  html += '<div class="campo"><label for="ed-descuento-valor">Valor</label><input type="number" min="0" step="0.01" id="ed-descuento-valor" value="'+p.descuento.valor+'"></div>';
+  html += '</div></div>';
 
-<script src="storage.js"></script>
-<script src="app.js"></script>
+  html += '<div class="tarjeta" style="margin-bottom:18px;">';
+  html += '<h3 style="margin-bottom:10px;">Condiciones</h3>';
+  html += '<div class="campo"><textarea id="ed-condiciones" rows="4">'+escapeHtml(p.condiciones||"")+'</textarea></div>';
+  html += '</div>';
+
+  html += '<div class="encabezado-seccion"><h2>Resumen</h2></div>';
+  html += '<div class="resumen">';
+  html += '<div class="linea"><span>Subtotal</span><b>'+formatARS(tot.subtotal)+'</b></div>';
+  if(tot.montoRecargo>0) html += '<div class="linea"><span>Recargo</span><b>'+formatARS(tot.montoRecargo)+'</b></div>';
+  if(tot.montoDescuento>0) html += '<div class="linea"><span>Descuento</span><b>-'+formatARS(tot.montoDescuento)+'</b></div>';
+  html += '<div class="linea-total"><span>TOTAL</span><b>'+formatARS(tot.total)+'</b></div>';
+  html += '</div>';
+
+  html += '<div style="display:flex; flex-direction:column; gap:10px; margin-top:22px;">';
+  html += '<button class="btn btn-primario btn-bloque" id="btn-guardar-presupuesto">'+ICONOS.check+' Guardar presupuesto</button>';
+  if(estado.editandoId){
+    html += '<button class="btn btn-secundario btn-bloque" id="btn-imprimir-presupuesto">'+ICONOS.impresora+' Guardar como PDF</button>';
+    html += '<button class="btn btn-secundario btn-bloque" id="btn-duplicar-presupuesto">'+ICONOS.copiar+' Duplicar presupuesto</button>';
+    html += '<button class="btn btn-peligro btn-bloque" id="btn-eliminar-presupuesto">'+ICONOS.tacho+' Eliminar presupuesto</button>';
+  }
+  html += '</div>';
+
+  return html;
+}
+
+function optSel(valor,label,actual){
+  return '<option value="'+valor+'" '+(valor===actual?"selected":"")+'>'+label+'</option>';
+}
+
+function renderTrabajosSeccion(p){
+  if(p.modo==="ambientes"){
+    let html = "";
+    (p.ambientes||[]).forEach((amb, idxAmb)=>{
+      const sub = (amb.trabajos||[]).reduce((a,t)=>a+subtotalTrabajo(t),0);
+      html += '<div class="ambiente-bloque">';
+      html += '<div class="ambiente-cabecera"><h3>'+escapeHtml(amb.nombre||"Ambiente")+'</h3>'
+        + '<div style="display:flex;gap:4px;">'
+        + '<button class="btn-icono" data-editar-ambiente="'+idxAmb+'" aria-label="Renombrar">'+ICONOS.lapiz+'</button>'
+        + '<button class="btn-icono" data-borrar-ambiente="'+idxAmb+'" aria-label="Eliminar ambiente">'+ICONOS.tacho+'</button>'
+        + '</div></div>';
+      html += renderListaTrabajos(amb.trabajos||[], idxAmb);
+      if(!(amb.trabajos||[]).length){
+        html += '<p style="color:var(--ink-soft);font-size:14px;padding:6px 2px;">Sin trabajos todavía.</p>';
+      }
+      html += '<div class="ambiente-subtotal">Subtotal: '+formatARS(sub)+'</div>';
+      html += '<button class="btn btn-secundario btn-chico" data-agregar-a-ambiente="'+idxAmb+'">'+ICONOS.mas+' Agregar trabajo a este ambiente</button>';
+      html += '</div>';
+    });
+    html += '<button class="btn btn-secundario btn-bloque" id="btn-nuevo-ambiente">'+ICONOS.mas+' Agregar ambiente</button>';
+    return html;
+  }else{
+    let html = renderListaTrabajos(p.trabajos||[], null);
+    if(!(p.trabajos||[]).length){
+      html = '<div class="vacio">'+ICONOS.cajaVacia+'<p>Todavía no agregaste ningún trabajo.</p></div>';
+    }
+    return html;
+  }
+}
+
+function renderListaTrabajos(trabajos, idxAmb){
+  if(!trabajos.length) return "";
+  const ambAttr = idxAmb===null||idxAmb===undefined ? "" : ' data-amb="'+idxAmb+'"';
+  // Vista móvil (tarjetas)
+  let movil = '<div class="lista-trabajos-movil">';
+  trabajos.forEach((t,i)=>{
+    movil += '<div class="trabajo-item">'
+      + '<div class="top"><div><div class="tipo">'+escapeHtml(t.tipo)+'</div><div class="desc">'+escapeHtml(t.descripcion)+'</div></div>'
+      + '<div class="acciones"><button class="btn-icono" data-editar-trabajo="'+i+'"'+ambAttr+' aria-label="Editar">'+ICONOS.lapiz+'</button>'
+      + '<button class="btn-icono" data-borrar-trabajo="'+i+'"'+ambAttr+' aria-label="Eliminar">'+ICONOS.tacho+'</button></div></div>'
+      + '<div class="calc">'+numero(t.cantidad)+' '+escapeHtml(t.unidad)+' x '+formatARS(t.precio)+'</div>'
+      + '<div class="subtotal">'+formatARS(subtotalTrabajo(t))+'</div>'
+      + '</div>';
+  });
+  movil += '</div>';
+  // Vista de escritorio (tabla)
+  let tabla = '<table class="tabla-trabajos"><thead><tr><th>Tipo</th><th>Descripción</th><th>Cant.</th><th>Unidad</th><th>Precio</th><th class="num">Subtotal</th><th></th></tr></thead><tbody>';
+  trabajos.forEach((t,i)=>{
+    tabla += '<tr><td>'+escapeHtml(t.tipo)+'</td><td>'+escapeHtml(t.descripcion)+'</td><td>'+numero(t.cantidad)+'</td><td>'+escapeHtml(t.unidad)+'</td>'
+      + '<td class="num">'+formatARS(t.precio)+'</td><td class="num">'+formatARS(subtotalTrabajo(t))+'</td>'
+      + '<td><div class="acciones-tabla"><button class="btn-icono" data-editar-trabajo="'+i+'"'+ambAttr+' aria-label="Editar">'+ICONOS.lapiz+'</button>'
+      + '<button class="btn-icono" data-borrar-trabajo="'+i+'"'+ambAttr+' aria-label="Eliminar">'+ICONOS.tacho+'</button></div></td></tr>';
+  });
+  tabla += '</tbody></table>';
+  return movil+tabla;
+}
+
+/* =====================================================================
+   11. EVENTOS
+   ===================================================================== */
+function adjuntarEventos(){
+  // Navegación
+  app.querySelectorAll("[data-nav]").forEach(b=> b.addEventListener("click", ()=> irA(b.getAttribute("data-nav"))));
+
+  const btnVolver = document.getElementById("btn-topbar-volver");
+  if(btnVolver) btnVolver.addEventListener("click", salirDelEditor);
+
+  const btnFab = document.getElementById("btn-fab-nuevo");
+  if(btnFab) btnFab.addEventListener("click", abrirNuevoPresupuesto);
+
+  const btnNuevo = document.getElementById("btn-nuevo-presupuesto");
+  if(btnNuevo) btnNuevo.addEventListener("click", abrirNuevoPresupuesto);
+
+  app.querySelectorAll("[data-abrir]").forEach(b=> b.addEventListener("click", ()=> abrirPresupuestoExistente(b.getAttribute("data-abrir"))));
+
+  if(estado.pantalla==="precios") adjuntarEventosPrecios();
+  if(estado.pantalla==="config") adjuntarEventosConfig();
+  if(estado.pantalla==="editor") adjuntarEventosEditor();
+}
+
+function irA(pantalla){
+  if(estado.pantalla==="editor" && pantalla!=="editor"){ salirDelEditor(); return; }
+  estado.pantalla = pantalla;
+  if(pantalla==="precios") estado.filtroPrecio = "";
+  render();
+}
+
+function salirDelEditor(){
+  limpiarBorrador();
+  estado.pantalla = "inicio";
+  estado.presupuestoActual = null;
+  estado.editandoId = null;
+  render();
+}
+
+function abrirNuevoPresupuesto(){
+  estado.presupuestoActual = presupuestoVacio();
+  estado.editandoId = null;
+  estado.pantalla = "editor";
+  render();
+}
+function abrirPresupuestoExistente(id){
+  const p = DB.presupuestos.find(x=>x.id===id);
+  if(!p) return;
+  estado.presupuestoActual = JSON.parse(JSON.stringify(p));
+  estado.editandoId = id;
+  estado.pantalla = "editor";
+  render();
+}
+
+/* ---------- Eventos: Precios ---------- */
+function adjuntarEventosPrecios(){
+  const buscador = document.getElementById("buscador-precios");
+  if(buscador){
+    buscador.addEventListener("input", (e)=>{
+      estado.filtroPrecio = e.target.value;
+      render();
+      setTimeout(()=>{ const b=document.getElementById("buscador-precios"); if(b){ b.focus(); b.selectionStart=b.selectionEnd=b.value.length; } },0);
+    });
+  }
+  const btnNuevo = document.getElementById("btn-nuevo-precio");
+  if(btnNuevo) btnNuevo.addEventListener("click", ()=> abrirModalPrecio(null));
+  app.querySelectorAll("[data-editar-precio]").forEach(b=> b.addEventListener("click", ()=> abrirModalPrecio(b.getAttribute("data-editar-precio"))));
+  app.querySelectorAll("[data-borrar-precio]").forEach(b=> b.addEventListener("click", ()=> confirmarBorrarPrecio(b.getAttribute("data-borrar-precio"))));
+}
+
+function abrirModalPrecio(id){
+  const item = id ? DB.catalogo.find(x=>x.id===id) : { tipo:DB.tipos[0], descripcion:"", unidad:"m²", precio:0 };
+  const opcionesTipos = DB.tipos.map(t=>'<option value="'+escapeHtml(t)+'" '+(t===item.tipo?"selected":"")+'>'+escapeHtml(t)+'</option>').join("");
+  const opcionesUnidad = UNIDADES.map(u=>'<option value="'+u+'" '+(u===item.unidad?"selected":"")+'>'+u+'</option>').join("");
+  const cuerpo = ''
+    + '<div class="campo"><label>Tipo de trabajo</label><select id="mp-tipo">'+opcionesTipos+'</select>'
+    + '<button type="button" class="btn-fantasax" id="mp-nuevo-tipo" style="margin-top:6px;color:var(--brick);background:none;border:none;font-weight:700;font-size:14px;padding:4px 0;">+ Agregar tipo nuevo</button></div>'
+    + '<div class="campo"><label>Descripción del trabajo</label><input type="text" id="mp-descripcion" value="'+escapeHtml(item.descripcion)+'"></div>'
+    + '<div class="fila-2">'
+    + '<div class="campo"><label>Unidad</label><select id="mp-unidad">'+opcionesUnidad+'</select></div>'
+    + '<div class="campo"><label>Precio</label><input type="number" min="0" step="0.01" id="mp-precio" value="'+item.precio+'"></div>'
+    + '</div>';
+
+  abrirModal({
+    titulo: id ? "Editar trabajo" : "Nuevo trabajo del catálogo",
+    cuerpoHtml: cuerpo,
+    botones:[
+      { texto:"Cancelar", clase:"btn-secundario" },
+      { texto:"Guardar", clase:"btn-primario", accion:()=>{
+        const tipo = document.getElementById("mp-tipo").value.trim();
+        const descripcion = document.getElementById("mp-descripcion").value.trim();
+        const unidad = document.getElementById("mp-unidad").value;
+        const precio = numero(document.getElementById("mp-precio").value);
+        if(!descripcion){ mostrarToast("Completá la descripción del trabajo."); return false; }
+        if(precio<0){ mostrarToast("El precio no puede ser negativo."); return false; }
+        if(id){
+          const it = DB.catalogo.find(x=>x.id===id);
+          it.tipo=tipo; it.descripcion=descripcion; it.unidad=unidad; it.precio=precio;
+        }else{
+          DB.catalogo.push({ id:uid(), tipo, descripcion, unidad, precio });
+        }
+        guardar(LS.catalogo, DB.catalogo);
+        render();
+        mostrarToast("Trabajo guardado.");
+      } }
+    ]
+  });
+
+  document.getElementById("mp-nuevo-tipo").addEventListener("click", ()=>{
+    abrirModalTextoSimple("Nuevo tipo de trabajo","Nombre del tipo", "", (valor)=>{
+      if(!valor.trim()) return;
+      if(!DB.tipos.includes(valor.trim())) DB.tipos.push(valor.trim());
+      guardar(LS.tipos, DB.tipos);
+      abrirModalPrecio(id);
+      setTimeout(()=>{ const s=document.getElementById("mp-tipo"); if(s) s.value=valor.trim(); },0);
+    });
+  });
+}
+
+function confirmarBorrarPrecio(id){
+  abrirModal({
+    titulo:"¿Eliminar este trabajo?",
+    cuerpoHtml:"<p>Esta acción no se puede deshacer. No afecta a los presupuestos ya guardados.</p>",
+    botones:[
+      { texto:"Cancelar", clase:"btn-secundario" },
+      { texto:"Eliminar", clase:"btn-peligro-lleno", accion:()=>{
+        DB.catalogo = DB.catalogo.filter(x=>x.id!==id);
+        guardar(LS.catalogo, DB.catalogo);
+        render();
+        mostrarToast("Trabajo eliminado.");
+      } }
+    ]
+  });
+}
+
+/* ---------- Eventos: Configuración ---------- */
+function adjuntarEventosConfig(){
+  document.getElementById("btn-guardar-config").addEventListener("click", ()=>{
+    DB.config.empresa = document.getElementById("cfg-empresa").value.trim();
+    DB.config.telefono = document.getElementById("cfg-telefono").value.trim();
+    DB.config.localidad = document.getElementById("cfg-localidad").value.trim();
+    DB.config.condicionesDefault = document.getElementById("cfg-condiciones").value;
+    guardar(LS.config, DB.config);
+    render();
+    mostrarToast("Datos guardados.");
+  });
+
+  document.getElementById("btn-subir-logo").addEventListener("click", ()=> document.getElementById("input-logo").click());
+  document.getElementById("input-logo").addEventListener("change", (e)=>{
+    const f = e.target.files[0];
+    if(!f) return;
+    const lector = new FileReader();
+    lector.onload = ()=>{
+      DB.config.logo = lector.result;
+      guardar(LS.config, DB.config);
+      render();
+      mostrarToast("Logo actualizado.");
+    };
+    lector.readAsDataURL(f);
+  });
+  const btnQuitar = document.getElementById("btn-quitar-logo");
+  if(btnQuitar) btnQuitar.addEventListener("click", ()=>{
+    DB.config.logo = null;
+    guardar(LS.config, DB.config);
+    render();
+  });
+
+  document.getElementById("btn-exportar").addEventListener("click", exportarBackup);
+  document.getElementById("btn-importar").addEventListener("click", ()=> document.getElementById("input-backup").click());
+  document.getElementById("input-backup").addEventListener("change", (e)=>{
+    const f = e.target.files[0];
+    if(!f) return;
+    const lector = new FileReader();
+    lector.onload = ()=>{
+      let datos;
+      try{ datos = JSON.parse(lector.result); }
+      catch(err){ mostrarToast("El archivo no es un backup válido."); return; }
+      confirmarImportarBackup(datos);
+    };
+    lector.readAsText(f);
+    e.target.value = "";
+  });
+}
+
+function exportarBackup(){
+  const backup = {
+    tipo:"backup-presupuestos-albanileria",
+    version:1,
+    fecha: new Date().toISOString(),
+    config: DB.config,
+    tipos: DB.tipos,
+    catalogo: DB.catalogo,
+    presupuestos: DB.presupuestos
+  };
+  const blob = new Blob([JSON.stringify(backup,null,2)], { type:"application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const fechaArchivo = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = "backup-presupuestos-"+fechaArchivo+".json";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+  mostrarToast("Backup descargado.");
+}
+
+function confirmarImportarBackup(datos){
+  abrirModal({
+    titulo:"⚠️ Importar backup",
+    cuerpoHtml:"<p>Importar este backup reemplazará los datos actuales (empresa, precios y presupuestos). ¿Querés continuar?</p>",
+    botones:[
+      { texto:"Cancelar", clase:"btn-secundario" },
+      { texto:"Importar", clase:"btn-primario", accion:()=>{
+        DB.config = datos.config || CONFIG_INICIAL;
+        DB.tipos = datos.tipos && datos.tipos.length ? datos.tipos : TIPOS_TRABAJO_INICIALES.slice();
+        DB.catalogo = datos.catalogo || [];
+        DB.presupuestos = datos.presupuestos || [];
+        persistirTodo();
+        estado.pantalla = "inicio";
+        render();
+        mostrarToast("Backup importado correctamente.");
+      } }
+    ]
+  });
+}
+
+/* ---------- Eventos: Editor ---------- */
+function adjuntarEventosEditor(){
+  const p = estado.presupuestoActual;
+
+  bindTexto("ed-nombre", v=>p.cliente.nombre=v);
+  bindTexto("ed-telefono", v=>p.cliente.telefono=v);
+  bindTexto("ed-direccion", v=>p.cliente.direccion=v);
+  bindTexto("ed-fecha", v=>p.fecha=v);
+  bindTexto("ed-condiciones", v=>p.condiciones=v);
+
+  document.getElementById("ed-modo-ambientes").addEventListener("change",(e)=>{
+    if(e.target.checked){
+      p.modo = "ambientes";
+      if(!p.ambientes || !p.ambientes.length){
+        p.ambientes = [{ id:uid(), nombre:"Ambiente 1", trabajos: p.trabajos && p.trabajos.length ? p.trabajos : [] }];
+        p.trabajos = [];
+      }
+    }else{
+      p.modo = "general";
+      if((!p.trabajos || !p.trabajos.length) && p.ambientes && p.ambientes.length){
+        let todos=[]; p.ambientes.forEach(a=> todos = todos.concat(a.trabajos||[]));
+        p.trabajos = todos;
+      }
+    }
+    programarAutoguardado();
+    render();
+  });
+
+  const selMat = document.getElementById("ed-materiales-modo");
+  if(selMat) selMat.addEventListener("change",(e)=>{ p.materialesConfig.modo = e.target.value; programarAutoguardado(); });
+  const chkSep = document.getElementById("ed-separar");
+  if(chkSep) chkSep.addEventListener("change",(e)=>{ p.materialesConfig.separar = e.target.checked; programarAutoguardado(); render(); });
+  bindNumero("ed-mano-obra", v=>p.materialesConfig.manoObra=v);
+  bindNumero("ed-materiales", v=>p.materialesConfig.materiales=v);
+
+  const selRecT = document.getElementById("ed-recargo-tipo");
+  if(selRecT) selRecT.addEventListener("change",(e)=>{ p.recargo.tipo=e.target.value; programarAutoguardado(); render(); });
+  bindNumero("ed-recargo-valor", v=>{ p.recargo.valor=v; render(); }, true);
+  const selDescT = document.getElementById("ed-descuento-tipo");
+  if(selDescT) selDescT.addEventListener("change",(e)=>{ p.descuento.tipo=e.target.value; programarAutoguardado(); render(); });
+  bindNumero("ed-descuento-valor", v=>{ p.descuento.valor=v; render(); }, true);
+
+  document.getElementById("btn-agregar-trabajo").addEventListener("click", ()=> abrirModalTrabajo(null,null));
+
+  app.querySelectorAll("[data-editar-trabajo]").forEach(b=>{
+    b.addEventListener("click", ()=>{
+      const i = parseInt(b.getAttribute("data-editar-trabajo"),10);
+      const ambIdx = b.hasAttribute("data-amb") ? parseInt(b.getAttribute("data-amb"),10) : null;
+      abrirModalTrabajo(i, ambIdx);
+    });
+  });
+  app.querySelectorAll("[data-borrar-trabajo]").forEach(b=>{
+    b.addEventListener("click", ()=>{
+      const i = parseInt(b.getAttribute("data-borrar-trabajo"),10);
+      const ambIdx = b.hasAttribute("data-amb") ? parseInt(b.getAttribute("data-amb"),10) : null;
+      const arr = ambIdx===null ? p.trabajos : p.ambientes[ambIdx].trabajos;
+      arr.splice(i,1);
+      programarAutoguardado();
+      render();
+    });
+  });
+
+  app.querySelectorAll("[data-agregar-a-ambiente]").forEach(b=>{
+    b.addEventListener("click", ()=> abrirModalTrabajo(null, parseInt(b.getAttribute("data-agregar-a-ambiente"),10)));
+  });
+  const btnNuevoAmb = document.getElementById("btn-nuevo-ambiente");
+  if(btnNuevoAmb) btnNuevoAmb.addEventListener("click", ()=>{
+    abrirModalTextoSimple("Nuevo ambiente","Nombre del ambiente (ej: Baño, Cocina)","",(valor)=>{
+      if(!valor.trim()) return;
+      p.ambientes.push({ id:uid(), nombre:valor.trim(), trabajos:[] });
+      programarAutoguardado();
+      render();
+    });
+  });
+  app.querySelectorAll("[data-editar-ambiente]").forEach(b=>{
+    b.addEventListener("click", ()=>{
+      const idx = parseInt(b.getAttribute("data-editar-ambiente"),10);
+      abrirModalTextoSimple("Renombrar ambiente","Nombre del ambiente", p.ambientes[idx].nombre, (valor)=>{
+        if(!valor.trim()) return;
+        p.ambientes[idx].nombre = valor.trim();
+        programarAutoguardado();
+        render();
+      });
+    });
+  });
+  app.querySelectorAll("[data-borrar-ambiente]").forEach(b=>{
+    b.addEventListener("click", ()=>{
+      const idx = parseInt(b.getAttribute("data-borrar-ambiente"),10);
+      abrirModal({
+        titulo:"¿Eliminar ambiente?",
+        cuerpoHtml:"<p>Se eliminarán también los trabajos cargados dentro de este ambiente.</p>",
+        botones:[
+          { texto:"Cancelar", clase:"btn-secundario" },
+          { texto:"Eliminar", clase:"btn-peligro-lleno", accion:()=>{
+            p.ambientes.splice(idx,1);
+            programarAutoguardado();
+            render();
+          } }
+        ]
+      });
+    });
+  });
+
+  document.getElementById("btn-guardar-presupuesto").addEventListener("click", guardarPresupuestoActual);
+
+  const btnImprimir = document.getElementById("btn-imprimir-presupuesto");
+  if(btnImprimir) btnImprimir.addEventListener("click", ()=> imprimirPresupuesto(p));
+
+  const btnDuplicar = document.getElementById("btn-duplicar-presupuesto");
+  if(btnDuplicar) btnDuplicar.addEventListener("click", ()=>{
+    const copia = JSON.parse(JSON.stringify(p));
+    copia.id = uid();
+    copia.cliente.nombre = copia.cliente.nombre + " (copia)";
+    copia.fecha = hoyDDMMYYYY();
+    copia.createdAt = Date.now();
+    copia.updatedAt = Date.now();
+    DB.presupuestos.push(copia);
+    guardar(LS.presupuestos, DB.presupuestos);
+    mostrarToast("Presupuesto duplicado.");
+    estado.presupuestoActual = JSON.parse(JSON.stringify(copia));
+    estado.editandoId = copia.id;
+    render();
+  });
+
+  const btnEliminar = document.getElementById("btn-eliminar-presupuesto");
+  if(btnEliminar) btnEliminar.addEventListener("click", ()=>{
+    abrirModal({
+      titulo:"¿Seguro que querés eliminar este presupuesto?",
+      cuerpoHtml:"<p>Esta acción no se puede deshacer.</p>",
+      botones:[
+        { texto:"Cancelar", clase:"btn-secundario" },
+        { texto:"Eliminar", clase:"btn-peligro-lleno", accion:()=>{
+          DB.presupuestos = DB.presupuestos.filter(x=>x.id!==estado.editandoId);
+          guardar(LS.presupuestos, DB.presupuestos);
+          limpiarBorrador();
+          estado.pantalla="inicio"; estado.presupuestoActual=null; estado.editandoId=null;
+          render();
+          mostrarToast("Presupuesto eliminado.");
+        } }
+      ]
+    });
+  });
+
+  function bindTexto(id, setter){
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.addEventListener("input", (e)=>{ setter(e.target.value); programarAutoguardado(); });
+  }
+  function bindNumero(id, setter, rerenderTotales){
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.addEventListener("input", (e)=>{ setter(numero(e.target.value)); programarAutoguardado(); if(rerenderTotales) actualizarResumenSinPerderFoco(); });
+  }
+}
+
+// Actualiza sólo los números del resumen sin perder el foco del input que se está tipeando
+function actualizarResumenSinPerderFoco(){
+  const p = estado.presupuestoActual;
+  const tot = calcularTotales(p);
+  const resumen = app.querySelector(".resumen");
+  if(!resumen) return;
+  let html = '<div class="linea"><span>Subtotal</span><b>'+formatARS(tot.subtotal)+'</b></div>';
+  if(tot.montoRecargo>0) html += '<div class="linea"><span>Recargo</span><b>'+formatARS(tot.montoRecargo)+'</b></div>';
+  if(tot.montoDescuento>0) html += '<div class="linea"><span>Descuento</span><b>-'+formatARS(tot.montoDescuento)+'</b></div>';
+  html += '<div class="linea-total"><span>TOTAL</span><b>'+formatARS(tot.total)+'</b></div>';
+  resumen.innerHTML = html;
+}
+
+/* ---------- Modal: Agregar / Editar trabajo ---------- */
+function abrirModalTrabajo(indice, ambIdx){
+  const p = estado.presupuestoActual;
+  const arr = ambIdx===null||ambIdx===undefined ? p.trabajos : p.ambientes[ambIdx].trabajos;
+  const existente = (indice!==null && indice!==undefined) ? arr[indice] : null;
+
+  const opcionesCatalogo = '<option value="">— Escribir manualmente —</option>' + DB.catalogo
+    .slice().sort((a,b)=>a.descripcion.localeCompare(b.descripcion))
+    .map(it=>'<option value="'+it.id+'">'+escapeHtml(it.descripcion)+'</option>').join("");
+  const opcionesTipos = DB.tipos.map(t=>'<option value="'+escapeHtml(t)+'" '+(existente&&t===existente.tipo?"selected":"")+'>'+escapeHtml(t)+'</option>').join("");
+  const opcionesUnidad = UNIDADES.map(u=>'<option value="'+u+'" '+(existente&&u===existente.unidad?"selected":"")+'>'+u+'</option>').join("");
+
+  const cuerpo = ''
+    + (DB.catalogo.length ? '<div class="campo"><label>Elegir del catálogo de precios</label><select id="mt-catalogo">'+opcionesCatalogo+'</select></div>' : '')
+    + '<div class="campo"><label>Tipo de trabajo</label><select id="mt-tipo">'+opcionesTipos+'</select></div>'
+    + '<div class="campo"><label>Descripción</label><input type="text" id="mt-descripcion" value="'+escapeHtml(existente?existente.descripcion:"")+'"></div>'
+    + '<div class="fila-2 apilar-movil">'
+    + '<div class="campo"><label>Cantidad</label><input type="number" min="0" step="0.01" id="mt-cantidad" value="'+(existente?existente.cantidad:1)+'"></div>'
+    + '<div class="campo"><label>Unidad</label><select id="mt-unidad">'+opcionesUnidad+'</select></div>'
+    + '</div>'
+    + '<div class="campo"><label>Precio unitario</label><input type="number" min="0" step="0.01" id="mt-precio" value="'+(existente?existente.precio:0)+'"></div>'
+    + '<div class="campo" style="margin-bottom:0;"><label>Subtotal</label><div id="mt-subtotal" style="font-size:20px;font-weight:700;color:var(--brick);padding:6px 0;">'+formatARS(existente?subtotalTrabajo(existente):0)+'</div></div>';
+
+  abrirModal({
+    titulo: existente ? "Editar trabajo" : "Agregar trabajo",
+    cuerpoHtml: cuerpo,
+    botones:[
+      { texto:"Cancelar", clase:"btn-secundario" },
+      { texto: existente ? "Guardar" : "Agregar", clase:"btn-primario", accion:()=>{
+        const tipo = document.getElementById("mt-tipo").value;
+        const descripcion = document.getElementById("mt-descripcion").value.trim();
+        const cantidad = numero(document.getElementById("mt-cantidad").value);
+        const unidad = document.getElementById("mt-unidad").value;
+        const precio = numero(document.getElementById("mt-precio").value);
+        if(!descripcion){ mostrarToast("Completá la descripción del trabajo."); return false; }
+        if(cantidad<0){ mostrarToast("La cantidad no puede ser negativa."); return false; }
+        if(precio<0){ mostrarToast("El precio no puede ser negativo."); return false; }
+        const nuevo = { tipo, descripcion, cantidad, unidad, precio };
+        if(existente){ arr[indice] = nuevo; } else { arr.push(nuevo); }
+        programarAutoguardado();
+        render();
+      } }
+    ]
+  });
+
+  function actualizarSubtotalModal(){
+    const c = numero(document.getElementById("mt-cantidad").value);
+    const pr = numero(document.getElementById("mt-precio").value);
+    document.getElementById("mt-subtotal").textContent = formatARS(c*pr);
+  }
+  document.getElementById("mt-cantidad").addEventListener("input", actualizarSubtotalModal);
+  document.getElementById("mt-precio").addEventListener("input", actualizarSubtotalModal);
+
+  const selCatalogo = document.getElementById("mt-catalogo");
+  if(selCatalogo){
+    selCatalogo.addEventListener("change",(e)=>{
+      const it = DB.catalogo.find(x=>x.id===e.target.value);
+      if(!it) return;
+      document.getElementById("mt-tipo").value = it.tipo;
+      document.getElementById("mt-descripcion").value = it.descripcion;
+      document.getElementById("mt-unidad").value = it.unidad;
+      document.getElementById("mt-precio").value = it.precio;
+      actualizarSubtotalModal();
+    });
+  }
+}
+
+/* =====================================================================
+   12. VALIDACIÓN Y GUARDADO DEL PRESUPUESTO
+   ===================================================================== */
+function guardarPresupuestoActual(){
+  const p = estado.presupuestoActual;
+  if(!p.cliente.nombre || !p.cliente.nombre.trim()){
+    mostrarToast("Completá el nombre del cliente.");
+    return;
+  }
+  const trabajos = listaDeTrabajos(p);
+  if(!trabajos.length){
+    mostrarToast("Agregá al menos un trabajo antes de guardar.");
+    return;
+  }
+  for(const t of trabajos){
+    if(numero(t.cantidad) < 0 || numero(t.precio) < 0){
+      mostrarToast("Hay cantidades o precios negativos. Revisá los trabajos.");
+      return;
+    }
+  }
+  const ahora = Date.now();
+  if(estado.editandoId){
+    const idx = DB.presupuestos.findIndex(x=>x.id===estado.editandoId);
+    p.updatedAt = ahora;
+    if(idx>=0) DB.presupuestos[idx] = p; else DB.presupuestos.push(p);
+  }else{
+    p.id = uid();
+    p.createdAt = ahora;
+    p.updatedAt = ahora;
+    DB.presupuestos.push(p);
+    estado.editandoId = p.id;
+  }
+  guardar(LS.presupuestos, DB.presupuestos);
+  limpiarBorrador();
+  mostrarToast("Presupuesto guardado.");
+  estado.pantalla = "inicio";
+  estado.presupuestoActual = null;
+  render();
+}
+
+/* =====================================================================
+   13. IMPRESIÓN / PDF
+   ===================================================================== */
+function imprimirPresupuesto(p){
+  const tot = calcularTotales(p);
+  const c = DB.config;
+  let filasHtml = "";
+
+  function filaTrabajo(t){
+    return '<tr><td>'+escapeHtml(t.tipo)+'</td><td>'+escapeHtml(t.descripcion)+'</td>'
+      + '<td class="num">'+numero(t.cantidad)+'</td><td class="num">'+escapeHtml(t.unidad)+'</td>'
+      + '<td class="num">'+formatARS(t.precio)+'</td><td class="num">'+formatARS(subtotalTrabajo(t))+'</td></tr>';
+  }
+
+  if(p.modo==="ambientes"){
+    (p.ambientes||[]).forEach(amb=>{
+      filasHtml += '<tr><td colspan="6" class="ph-ambiente-titulo">'+escapeHtml(amb.nombre)+'</td></tr>';
+      (amb.trabajos||[]).forEach(t=> filasHtml += filaTrabajo(t));
+    });
+  }else{
+    (p.trabajos||[]).forEach(t=> filasHtml += filaTrabajo(t));
+  }
+
+  let notaMateriales = "";
+  const etiquetasMat = { incluidos:"Materiales incluidos", no_incluidos:"Materiales no incluidos", cliente:"Materiales a cargo del cliente" };
+  notaMateriales = '<div class="ph-nota">'+ (etiquetasMat[p.materialesConfig.modo]||"") +'</div>';
+  if(p.materialesConfig.separar){
+    notaMateriales += '<div class="ph-nota">Mano de obra: '+formatARS(p.materialesConfig.manoObra)+' · Materiales: '+formatARS(p.materialesConfig.materiales)+'</div>';
+  }
+
+  const logoHtml = c.logo ? '<img class="ph-logo" src="'+c.logo+'">' : '';
+
+  const html = ''
+    + '<div class="hoja">'
+    + '<div class="ph-header">'+logoHtml
+    + '<div><div class="ph-empresa">'+escapeHtml(c.empresa||"")+'</div>'
+    + '<div class="ph-contacto">'+[c.telefono, c.localidad].filter(Boolean).map(escapeHtml).join(" · ")+'</div></div>'
+    + '<div class="ph-titulo">Presupuesto</div>'
+    + '</div>'
+    + '<div class="ph-datos-cliente">'
+    + '<div><b>Cliente</b>'+escapeHtml(p.cliente.nombre)+'</div>'
+    + '<div><b>Teléfono</b>'+escapeHtml(p.cliente.telefono||"-")+'</div>'
+    + '<div><b>Dirección</b>'+escapeHtml(p.cliente.direccion||"-")+'</div>'
+    + '<div><b>Fecha</b>'+escapeHtml(p.fecha)+'</div>'
+    + '</div>'
+    + '<table class="ph-tabla"><thead><tr><th>Tipo</th><th>Descripción</th><th class="num">Cant.</th><th class="num">Unidad</th><th class="num">Precio</th><th class="num">Total</th></tr></thead><tbody>'+filasHtml+'</tbody></table>'
+    + notaMateriales
+    + '<div class="ph-resumen">'
+    + '<div class="linea"><span>Subtotal</span><span>'+formatARS(tot.subtotal)+'</span></div>'
+    + (tot.montoRecargo>0 ? '<div class="linea"><span>Recargo</span><span>'+formatARS(tot.montoRecargo)+'</span></div>' : '')
+    + (tot.montoDescuento>0 ? '<div class="linea"><span>Descuento</span><span>-'+formatARS(tot.montoDescuento)+'</span></div>' : '')
+    + '<div class="total"><span>TOTAL</span><span>'+formatARS(tot.total)+'</span></div>'
+    + '</div>'
+    + (p.condiciones ? '<div class="ph-condiciones">'+escapeHtml(p.condiciones)+'</div>' : '')
+    + '</div>';
+
+  document.getElementById("print-area").innerHTML = html;
+  window.print();
+}
+
+/* =====================================================================
+   14. MODAL GENÉRICO Y TOAST
+   ===================================================================== */
+function abrirModal({titulo, cuerpoHtml, botones}){
+  const raiz = document.getElementById("modal-root");
+  let botonesHtml = botones.map((b,i)=> '<button class="btn '+b.clase+'" data-modal-btn="'+i+'">'+escapeHtml(b.texto)+'</button>').join("");
+  raiz.innerHTML = '<div class="overlay" id="modal-overlay"><div class="modal">'
+    + '<h3>'+escapeHtml(titulo)+'</h3>'
+    + '<div class="modal-cuerpo">'+cuerpoHtml+'</div>'
+    + '<div class="modal-botones">'+botonesHtml+'</div>'
+    + '</div></div>';
+
+  const overlay = document.getElementById("modal-overlay");
+  overlay.addEventListener("click",(e)=>{ if(e.target===overlay) cerrarModal(); });
+  botones.forEach((b,i)=>{
+    document.querySelector('[data-modal-btn="'+i+'"]').addEventListener("click", ()=>{
+      if(b.accion){
+        const resultado = b.accion();
+        if(resultado===false) return;
+      }
+      cerrarModal();
+    });
+  });
+}
+function cerrarModal(){
+  document.getElementById("modal-root").innerHTML = "";
+}
+function abrirModalTextoSimple(titulo,label,valorInicial,onGuardar){
+  abrirModal({
+    titulo,
+    cuerpoHtml:'<div class="campo"><label>'+escapeHtml(label)+'</label><input type="text" id="mts-input" value="'+escapeHtml(valorInicial||"")+'"></div>',
+    botones:[
+      { texto:"Cancelar", clase:"btn-secundario" },
+      { texto:"Guardar", clase:"btn-primario", accion:()=>{
+        const v = document.getElementById("mts-input").value;
+        onGuardar(v);
+      } }
+    ]
+  });
+  setTimeout(()=>{ const i=document.getElementById("mts-input"); if(i){ i.focus(); i.select(); } }, 30);
+}
+
+let toastTimer=null;
+function mostrarToast(msg){
+  const raiz = document.getElementById("toast-root");
+  raiz.innerHTML = '<div class="toast">'+ICONOS.check+' '+escapeHtml(msg)+'</div>';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{ raiz.innerHTML=""; }, 2600);
+}
+
+/* =====================================================================
+   15. RECUPERACIÓN DE BORRADOR AL INICIAR
+   ===================================================================== */
+function revisarBorradorAlIniciar(){
+  const b = leer(LS.borrador, null);
+  if(!b || !b.datos) return;
+  abrirModal({
+    titulo:"Presupuesto sin terminar",
+    cuerpoHtml:"<p>Tenés un presupuesto sin terminar. ¿Querés recuperarlo?</p>",
+    botones:[
+      { texto:"Descartar", clase:"btn-secundario", accion:()=>{ limpiarBorrador(); } },
+      { texto:"Recuperar", clase:"btn-primario", accion:()=>{
+        estado.presupuestoActual = b.datos;
+        estado.editandoId = b.editandoId;
+        estado.pantalla = "editor";
+        render();
+      } }
+    ]
+  });
+}
+
+/* =====================================================================
+   16. INICIO DE LA APLICACIÓN
+   ===================================================================== */
+render();
+revisarBorradorAlIniciar();
+
+})();
+</script>
 </body>
 </html>
